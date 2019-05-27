@@ -1,0 +1,1 @@
+wget https://raw.githubusercontent.com/naver/nlp-challenge/master/missions/ner/data/train/train_data
