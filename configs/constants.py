@@ -1,0 +1,2 @@
+START_TAG = "<START>"
+STOP_TAG = "<STOP>"
