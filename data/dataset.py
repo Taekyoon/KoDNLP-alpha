@@ -86,14 +86,13 @@ class NERDatasetFromJSONFile(Dataset):
 
         if self.enable_length:
             if isinstance(sampled_inputs[0], list):
-                inputs_length = [
-                    len(inst) if self.limit_pad_len is None and len(inst) < self.limit_pad_len else self.limit_pad_len
-                    for inst in sampled_inputs]
-                sampled_instances['inputs']['length'] = Tensor(inputs_length)
+                inputs_length = [len(inst) for inst in sampled_inputs]
             else:
-                inputs_length = [len(sampled_inputs) if self.limit_pad_len is None and len(
-                    sampled_inputs) < self.limit_pad_len else self.limit_pad_len]
-                sampled_instances['inputs']['length'] = Tensor(inputs_length).long()
+                inputs_length = [len(sampled_inputs)]
+
+            if self.limit_pad_len is not None:
+                inputs_length = [l if l < self.limit_pad_len else self.limit_pad_len for l in inputs_length]
+            sampled_instances['inputs']['length'] = Tensor(inputs_length).long()
 
         if self.limit_pad_len is not None:
             sampled_inputs = pad_sequences(sampled_inputs, self.limit_pad_len, self.pad_value)
