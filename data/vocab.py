@@ -1,3 +1,5 @@
+import copy
+
 from typing import List
 from collections import Counter
 
@@ -24,8 +26,8 @@ class Vocabulary(object):
 
         self.word_frequency = None
 
-        self.word2idx = None
-        self.idx2word = None
+        self._word_to_idx = None
+        self._idx_to_word = None
 
     def fit(self, tokenized_dataset: List) -> None:
         linear_dataset = self._square_to_linear(tokenized_dataset)
@@ -36,58 +38,92 @@ class Vocabulary(object):
         else:
             self.word_frequency.update(linear_dataset)
 
-        self.word_frequency = self._filter_min_freq(self.word_frequency, self.min_freq)
+        filtered_word_frequency = self._filter_min_freq(self.word_frequency, self.min_freq)
 
-        if len(self.word_frequency) < max_size:
-            max_size = len(self.word_frequency)
+        if max_size is None or len(filtered_word_frequency) < max_size:
+            max_size = len(filtered_word_frequency)
 
-        most_common_word_freq = self.word_frequency.most_common(max_size)
+        most_common_word_freq = filtered_word_frequency.most_common(max_size)
         self._create_word_dict()
 
         for word, _ in most_common_word_freq:
-            self.word2idx[word] = self.vocab_size
-            self.idx2word[self.vocab_size] = word
-            self.vocab_size += 1
+            self._idx_to_word.append(word)
+            self._word_to_idx[word] = len(self._idx_to_word) - 1
 
         return
 
     def to_indices(self, tokens: List):
-        pass
+        return self[tokens]
 
     def to_tokens(self, indices: List):
+        to_reduce = False
+        if not isinstance(indices, (list, tuple)):
+            indices = [indices]
+            to_reduce = True
+
+        max_idx = len(self._idx_to_word) - 1
+
+        tokens = []
+        for idx in indices:
+            if not isinstance(idx, int) or idx > max_idx:
+                raise ValueError('Token index {} in the provided `indices` is invalid.'.format(idx))
+            else:
+                tokens.append(self._idx_to_word[idx])
+
+        return tokens[0] if to_reduce else tokens
+
+    def to_json(self, json_path):
         pass
 
+    @classmethod
+    def from_json(cls, json_path):
+        pass
+
+    def __len__(self):
+        return len(self._idx_to_word)
+
+    def __getitem__(self, words):
+        if not isinstance(words, (list, tuple)):
+            return self._word_to_idx[words] if words in self._word_to_idx else self._word_to_idx[self.unknown_token]
+        else:
+            return [self._word_to_idx[w] if w in self._word_to_idx else self._word_to_idx[self.unknown_token]
+                    for w in words]
+
     def _create_word_dict(self) -> None:
-        self.word2idx = {self.padding_token: 0,
-                         self.unknown_token: 1}
-        self.idx2word = {0: self.padding_token,
-                         1: self.unknown_token}
-        self.vocab_size += 2
+        self._word_to_idx = dict()
+        self._idx_to_word = list()
+
+        if self.padding_token is not None:
+            self._idx_to_word.append(self.padding_token)
+            self._word_to_idx[self.padding_token] = len(self._idx_to_word) - 1
+
+        if self.unknown_token is not None:
+            self._idx_to_word.append(self.unknown_token)
+            self._word_to_idx[self.unknown_token] = len(self._idx_to_word) - 1
 
         if self.bos_token is not None:
-            self.word2idx[self.bos_token] = self.vocab_size
-            self.idx2word[self.vocab_size] = self.bos_token
-            self.vocab_size += 1
+            self._idx_to_word.append(self.bos_token)
+            self._word_to_idx[self.bos_token] = len(self._idx_to_word) - 1
 
         if self.eos_token is not None:
-            self.word2idx[self.eos_token] = self.vocab_size
-            self.idx2word[self.vocab_size] = self.eos_token
-            self.vocab_size += 1
+            self._idx_to_word.append(self.eos_token)
+            self._word_to_idx[self.eos_token] = len(self._idx_to_word) - 1
 
         if self.reserved_tokens is not None:
-            self.word2idx[self.reserved_tokens] = self.vocab_size
-            self.idx2word[self.vocab_size] = self.reserved_tokens
-            self.vocab_size += 1
+            self._idx_to_word.append(self.reserved_tokens)
+            self._word_to_idx[self.reserved_tokens] = len(self._idx_to_word) - 1
 
         return
 
     @classmethod
     def _filter_min_freq(cls, word_frequency: Counter, min_freq: int) -> Counter:
-        for word, freq in list(word_frequency.items()):
-            if freq < min_freq:
-                del word_frequency[word]
+        filtered_word_frequency = copy.deepcopy(word_frequency)
 
-        return word_frequency
+        for word, freq in list(filtered_word_frequency.items()):
+            if freq < min_freq:
+                del filtered_word_frequency[word]
+
+        return filtered_word_frequency
 
     @classmethod
     def _square_to_linear(cls, squared_list: List) -> List:

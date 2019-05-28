@@ -1,4 +1,5 @@
 from typing import Tuple
+import json
 
 import numpy as np
 
@@ -8,17 +9,17 @@ from torch.utils.data import Dataset
 from data.utils import pad_sequences
 
 
-class SLUDatasetFromNumpyFile(Dataset):
+class SLUDatasetFromJSONFile(Dataset):
     def __init__(self,
-                 np_path: str,
+                 json_path: str,
                  enable_length: bool = True,
                  limit_pad_len: int = None,
                  pad_value: int = 0) -> None:
-        dataset = np.load(open(np_path, 'rb'))
+        dataset = json.load(open(json_path, 'rb'))
 
-        self._inputs = dataset[:, 0, :]
-        self._slots = dataset[:, 1, :]
-        self._intents = dataset[:, 2, :]
+        self._inputs = np.array(dataset['inputs'])
+        self._slots = np.array(dataset['slots'])
+        self._intents = np.array(dataset['intents'])
 
         self.enable_length = enable_length
         self.limit_pad_len = limit_pad_len
@@ -54,16 +55,16 @@ class SLUDatasetFromNumpyFile(Dataset):
         return sampled_instances
 
 
-class NERDatasetFromNumpyFile(Dataset):
+class NERDatasetFromJSONFile(Dataset):
     def __init__(self,
-                 np_path: str,
+                 json_path: str,
                  enable_length: bool = True,
                  limit_pad_len: int = None,
                  pad_value: int = 0) -> None:
-        dataset = np.load(open(np_path, 'rb'))
+        dataset = json.load(open(json_path, 'rb'))
 
-        self._inputs = dataset[:, 0, :]
-        self._entities = dataset[:, 1, :]
+        self._inputs = np.array(dataset['inputs'])
+        self._entities = np.array(dataset['entities'])
 
         self.enable_length = enable_length
         self.limit_pad_len = limit_pad_len
