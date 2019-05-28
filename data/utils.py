@@ -15,7 +15,11 @@ def get_filelines(path: Path) -> int:
 
 
 def pad_sequences(dataset, limit_len, pad_value=0):
-    batch_size = dataset.shape[0]
+    if isinstance(dataset[0], list):
+        batch_size = len(dataset)
+    else:
+        batch_size = 1
+        dataset = [dataset]
 
     padded_sequences = np.full((batch_size, limit_len), pad_value)
 
@@ -23,9 +27,9 @@ def pad_sequences(dataset, limit_len, pad_value=0):
         len_inst = len(inst)
 
         if len_inst > limit_len:
-            padded_sequences[i, :] = inst[:limit_len]
+            padded_sequences[i, :] = np.array(inst[:limit_len])
         elif len_inst <= limit_len:
-            padded_sequences[i, :len_inst] = inst[:len_inst]
+            padded_sequences[i, :len_inst] = np.array(inst[:len_inst])
 
     return padded_sequences
 

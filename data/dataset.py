@@ -28,7 +28,7 @@ class SLUDatasetFromJSONFile(Dataset):
         return
 
     def __len__(self) -> int:
-        len_dataset = len(self._dataset)
+        len_dataset = len(self._inputs)
 
         return len_dataset
 
@@ -63,8 +63,8 @@ class NERDatasetFromJSONFile(Dataset):
                  pad_value: int = 0) -> None:
         dataset = json.load(open(json_path, 'rb'))
 
-        self._inputs = np.array(dataset['inputs'])
-        self._entities = np.array(dataset['entities'])
+        self._inputs = dataset['inputs']
+        self._entities = dataset['entities']
 
         self.enable_length = enable_length
         self.limit_pad_len = limit_pad_len
@@ -73,7 +73,7 @@ class NERDatasetFromJSONFile(Dataset):
         return
 
     def __len__(self) -> int:
-        len_dataset = len(self._dataset)
+        len_dataset = len(self._inputs)
 
         return len_dataset
 
@@ -85,15 +85,21 @@ class NERDatasetFromJSONFile(Dataset):
         sampled_entities = self._entities[idx]
 
         if self.enable_length:
-            inputs_length = [len(inst) for inst in sampled_inputs]
-            sampled_instances['inputs']['length'] = Tensor(inputs_length)
+            if isinstance(sampled_inputs[0], list):
+                inputs_length = [
+                    len(inst) if self.limit_pad_len is None and len(inst) < self.limit_pad_len else self.limit_pad_len
+                    for inst in sampled_inputs]
+                sampled_instances['inputs']['length'] = Tensor(inputs_length)
+            else:
+                inputs_length = [len(sampled_inputs) if self.limit_pad_len is None and len(
+                    sampled_inputs) < self.limit_pad_len else self.limit_pad_len]
+                sampled_instances['inputs']['length'] = Tensor(inputs_length).long()
 
         if self.limit_pad_len is not None:
             sampled_inputs = pad_sequences(sampled_inputs, self.limit_pad_len, self.pad_value)
-            sampled_slots = pad_sequences(sampled_entities, self.limit_pad_len, self.pad_value)
+            sampled_entities = pad_sequences(sampled_entities, self.limit_pad_len, self.pad_value)
 
-        sampled_instances['inputs']['value'] = Tensor(sampled_inputs)
-        sampled_instances['entities'] = Tensor(sampled_slots)
-        sampled_instances['intents'] = Tensor(sampled_entities)
+        sampled_instances['inputs']['value'] = Tensor(sampled_inputs).long()
+        sampled_instances['entities'] = Tensor(sampled_entities).long()
 
         return sampled_instances

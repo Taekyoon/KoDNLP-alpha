@@ -6,7 +6,7 @@ from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader
 
 from configs.constants import INPUT_VOCAB_FILENAME, TAG_VOCAB_FILENAME, \
-                              TRAIN_DATASET_FILENAME, VALIDATION_DATASET_FILENAME
+                              TRAIN_DATASET_FILENAME, VALIDATION_DATASET_FILENAME, RANDOM_SEED
 
 from data.vocab import Vocabulary
 from data.tokenizer import Tokenizer
@@ -78,11 +78,11 @@ class NERDatasetBuilder(object):
 
         train_raw_data, valid_raw_data = self._split_into_valid_and_train(self._raw_input, self._raw_label)
 
-        train_data['input'] = self._numerize_from_text(train_raw_data[0])
-        train_data['entities'] = self._numerize_from_text(train_raw_data[1])
+        train_data['inputs'] = self._numerize_from_text(train_raw_data[0], self._input_vocab)
+        train_data['entities'] = self._numerize_from_text(train_raw_data[1], self._label_vocab)
 
-        valid_data['input'] = self._numerize_from_text(valid_raw_data[0])
-        valid_data['entities'] = self._numerize_from_text(valid_raw_data[1])
+        valid_data['inputs'] = self._numerize_from_text(valid_raw_data[0], self._input_vocab)
+        valid_data['entities'] = self._numerize_from_text(valid_raw_data[1], self._label_vocab)
 
         self._save_as_json(train_data, train_data_path)
         self._save_as_json(valid_data, valid_data_path)
@@ -110,8 +110,8 @@ class NERDatasetBuilder(object):
 
         return train_data_loader, valid_data_loader
 
-    def _split_into_valid_and_train(self, test_size, random_state):
-        input_train, input_test, label_train, label_test = train_test_split(self._raw_input, self._raw_label,
+    def _split_into_valid_and_train(self, input, label, test_size=0.1, random_state=RANDOM_SEED):
+        input_train, input_test, label_train, label_test = train_test_split(input, label,
                                                                             test_size=test_size,
                                                                             random_state=random_state)
 
@@ -120,7 +120,7 @@ class NERDatasetBuilder(object):
     def _numerize_from_text(self, data: List[str], vocab: Vocabulary):
         splited_data = self._splitify(data)
 
-        return vocab.to_indices(splited_data)
+        return [vocab.to_indices(s_d) for s_d in splited_data]
 
     def _splitify(self, data: List[str]) -> List[List]:
         return [s.split() for s in data]
@@ -133,7 +133,7 @@ class NERDatasetBuilder(object):
             for i in range(filelines):
                 textline = ''
                 try:
-                    textline = textfile.read().rstrip().replace('\n', '')
+                    textline = textfile.readline().rstrip().replace('\n', '')
                 except ValueError() as e:
                     pass
 
