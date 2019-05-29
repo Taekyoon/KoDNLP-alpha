@@ -1,5 +1,5 @@
-START_TAG = '<START>'
-STOP_TAG = '<STOP>'
+START_TAG = '<bos>'
+STOP_TAG = '<eos>'
 
 TRAIN_DATASET_FILENAME = 'train_data.json'
 VALIDATION_DATASET_FILENAME = 'valid_data.json'

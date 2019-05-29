@@ -51,7 +51,7 @@ class NERDatasetBuilder(object):
         label_vocab_path = self._dataset_dir / TAG_VOCAB_FILENAME
 
         self._input_vocab = Vocabulary(max_size=max_size, min_freq=min_freq, bos_token=None, eos_token=None)
-        self._label_vocab = Vocabulary(unknown_token=None, bos_token=None, eos_token=None)
+        self._label_vocab = Vocabulary(unknown_token=None)
 
         input_data = self._splitify(self._raw_input)
         label_data = self._splitify(self._raw_label)
@@ -109,6 +109,22 @@ class NERDatasetBuilder(object):
                                        batch_size=1)
 
         return train_data_loader, valid_data_loader
+
+    @property
+    def input_vocab(self):
+        return self._input_vocab
+
+    @property
+    def tag_vocab(self):
+        return self._label_vocab
+
+    @property
+    def word_to_idx(self):
+        return self._input_vocab.word_to_idx
+
+    @property
+    def tag_to_idx(self):
+        return self._label_vocab.word_to_idx
 
     def _split_into_valid_and_train(self, input, label, test_size=0.1, random_state=RANDOM_SEED):
         input_train, input_test, label_train, label_test = train_test_split(input, label,

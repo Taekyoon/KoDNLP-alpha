@@ -79,6 +79,14 @@ class Vocabulary(object):
     def from_json(cls, json_path):
         pass
 
+    @property
+    def word_to_idx(self):
+        return self._word_to_idx
+
+    @property
+    def idx_to_word(self):
+        return self._idx_to_word
+
     def __len__(self):
         return len(self._idx_to_word)
 
@@ -110,8 +118,9 @@ class Vocabulary(object):
             self._word_to_idx[self.eos_token] = len(self._idx_to_word) - 1
 
         if self.reserved_tokens is not None:
-            self._idx_to_word.append(self.reserved_tokens)
-            self._word_to_idx[self.reserved_tokens] = len(self._idx_to_word) - 1
+            for token in self.reserved_tokens:
+                self._idx_to_word.append(token)
+                self._word_to_idx[token] = len(self._idx_to_word) - 1
 
         return
 
