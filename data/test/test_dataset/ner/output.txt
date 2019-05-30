@@ -1,20 +1,20 @@
-PER_B DAT_B - ORG_B CVL_B - - - - -
-- - - NUM_B NUM_B -
-NUM_B - NUM_B ORG_B PER_B - NUM_B - - NUM_B - - NUM_B - -
-NUM_B NUM_B LOC_B - EVT_B - - - - -
-- PER_B CVL_B -
-EVT_B CVL_B - - CVL_B - - - -
-EVT_B TRM_B TRM_I CVL_B - PER_B DAT_B EVT_B EVT_I - LOC_B PER_B PER_I - LOC_B PER_B PER_I LOC_B PER_B PER_I CVL_B - - -
-- CVL_B CVL_I NUM_B NUM_I DAT_B TIM_B TIM_I TIM_I TIM_B TIM_I TIM_I - - - - DAT_B - -
-- - - - - - -
-- - - - - - -
-NUM_B NUM_B - CVL_B ORG_B CVL_B PER_B - - - - - - - - -
-- PER_B PER_I LOC_B CVL_B NUM_B -
-LOC_B NUM_B - - LOC_B NUM_B - - -
-- - - -
-PER_B CVL_B PER_B CVL_B LOC_B - LOC_B - - - - - - - - - TRM_B - - - - - - LOC_B LOC_B - - - - - - - -
-LOC_B - - TRM_B - - - - TRM_B - - -
-- - - - - - - - - - - - -
-PER_B TRM_B - - - ORG_B - ANM_B -
-- - - - - - -
-- - - - EVT_B EVT_I - - - -
+B B O B B O O O O O
+O O O B B O
+B O B B B O B O O B O O B O O
+B B B O B O O O O O
+O B B O
+B B O O B O O O O
+B B I B O B B B I O B B I O B B I B B I B O O O
+O B I B I B B I I B I I O O O O B O O
+O O O O O O O
+O O O O O O O
+B B O B B B B O O O O O O O O O
+O B I B B B O
+B B O O B B O O O
+O O O O
+B B B B B O B O O O O O O O O O B O O O O O O B B O O O O O O O O
+B O O B O O O O B O O O
+O O O O O O O O O O O O O
+B B O O O B O B O
+O O O O O O O
+O O O O B I O O O O

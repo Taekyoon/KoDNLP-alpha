@@ -1,7 +1,10 @@
 from configs.constants import RANDOM_SEED
 
 import torch
+import numpy as np
 from tqdm import tqdm
+
+from train.metrics import f1
 
 
 class NERModelTrainer(object):
@@ -30,6 +33,8 @@ class NERModelTrainer(object):
         self._device = torch.device('cuda:' + str(gpu_device)) if torch.cuda.is_available() \
                                                                   and gpu_device > 0 else torch.device('cpu')
 
+        self.best_val_f1_score = 0.
+
         self._metric_fn = metric_fn
 
     def train(self):
@@ -38,22 +43,26 @@ class NERModelTrainer(object):
             self._train_epoch(i)
 
     def _eval(self):
-        total, score, f1_score = 0, 0., 0.
+        score, f1_score = 0., 0.
 
         self._model.eval()
 
+        accumulated_preds, accumulated_targets = [], []
+
         for step, sampled_batch in tqdm(enumerate(self._valid_data_loader), desc='valid steps',
                                         total=len(self._valid_data_loader)):
-            input_batch = sampled_batch['inputs']['value']
-            target_batch = sampled_batch['entities']
+            input_batch = torch.squeeze(sampled_batch['inputs']['value'], dim=1)
+            target_batch = torch.squeeze(sampled_batch['entities'], dim=1)
 
-            score, tag_seq = self._model(input_batch)
-            total += 1
-
+            pred_score, tag_seq = self._model(input_batch)
+            score += torch.mean(pred_score)
+            accumulated_preds.append(tag_seq.numpy())
+            accumulated_targets.append(target_batch.numpy())
         else:
-            pass
+            score = score / (step + 1)
+            f1_score = f1(np.array(accumulated_preds), np.array(accumulated_targets))
 
-        return score, f1_score / total
+        return score, f1_score
 
     def _train_epoch(self, epoch):
         steps_in_epoch = len(self._train_data_loader)
@@ -64,6 +73,8 @@ class NERModelTrainer(object):
 
         for step, sampled_batch in tqdm(enumerate(self._train_data_loader), desc='train steps',
                                         total=len(self._train_data_loader)):
+            total_steps = epoch * steps_in_epoch + (step + 1)
+
             input_batch = torch.squeeze(sampled_batch['inputs']['value'], dim=1)
             target_batch = torch.squeeze(sampled_batch['entities'], dim=1)
 
@@ -71,14 +82,16 @@ class NERModelTrainer(object):
             tr_loss += loss
             self._backprop(loss)
 
-            if (epoch * steps_in_epoch + (step + 1)) % self._eval_steps == 0:
+            if total_steps % self._eval_steps == 0:
                 val_score, val_f1 = self._eval()
+                self.best_val_f1_score = val_f1 if val_f1 > self.best_val_f1_score else self.best_val_f1_score
                 self._model.train()
-                print(tr_loss / (step+1))
-                # tqdm.write('epoch : {}, tr_loss : {:.3f}, val_f1 : {:.3f}, val_score : {:.3f}'.format(epoch + 1,
-                #                                                                                       tr_loss,
-                #                                                                                       val_f1,
-                #                                                                                       val_score))
+                tqdm.write(
+                    'epoch : {}, steps : {}, tr_loss : {:.3f}, val_f1 : {:.3f}, val_score : {:.3f}'.format(epoch + 1,
+                                                                                                           total_steps,
+                                                                                                           tr_loss,
+                                                                                                           val_f1,
+                                                                                                           val_score))
 
     def _backprop(self, loss) -> None:
         optimizer = self._optimizer

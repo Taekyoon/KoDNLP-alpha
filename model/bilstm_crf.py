@@ -127,6 +127,9 @@ class BiLSTM_CRF(nn.Module):
         start = best_path.pop()
         assert start == self.tag_to_ix[START_TAG]  # Sanity check
         best_path.reverse()
+
+        best_path = torch.cat(best_path)
+
         return path_score, best_path
 
     def neg_log_likelihood(self, sentence, tags):
@@ -145,6 +148,9 @@ class BiLSTM_CRF(nn.Module):
         for l_f in lstm_feats:
             score, tag_seq = self._viterbi_decode(l_f)
             scores.append(score)
-            tag_seq.append(tag_seq)
+            tag_seqs.append(tag_seq)
+
+        scores = torch.stack(scores)
+        tag_seqs = torch.stack(tag_seqs)
 
         return scores, tag_seqs

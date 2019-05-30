@@ -30,7 +30,7 @@ def test_run_model_predict():
 
     _, prediction = model(precheck_sent)
 
-    assert len(prediction) == 11
+    assert prediction.size() == (1, 11)
 
 
 def test_run_model_train():
@@ -56,6 +56,6 @@ def test_run_model_train():
     precheck_sent = prepare_sequence(training_data[0][0], word_to_ix)
     precheck_tag = prepare_sequence(training_data[0][1], tag_to_ix)
 
-    _, prediction = model.neg_log_likelihood(precheck_sent, precheck_tag)
+    loss = model.neg_log_likelihood(precheck_sent, precheck_tag)
 
-    assert len(prediction) == 11
+    assert loss > 0
