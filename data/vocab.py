@@ -30,7 +30,11 @@ class Vocabulary(object):
         self._idx_to_word = None
 
     def fit(self, tokenized_dataset: List) -> None:
-        linear_dataset = self._square_to_linear(tokenized_dataset)
+        if isinstance(tokenized_dataset[0], list):
+            linear_dataset = self._square_to_linear(tokenized_dataset)
+        else:
+            linear_dataset = tokenized_dataset
+
         max_size = self.max_size
 
         if self.word_frequency is None:

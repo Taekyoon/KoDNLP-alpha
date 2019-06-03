@@ -89,7 +89,7 @@ class NERModelTrainer(object):
                 tqdm.write(
                     'epoch : {}, steps : {}, tr_loss : {:.3f}, val_f1 : {:.3f}, val_score : {:.3f}'.format(epoch + 1,
                                                                                                            total_steps,
-                                                                                                           tr_loss,
+                                                                                                           tr_loss / (step + 1),
                                                                                                            val_f1,
                                                                                                            val_score))
 

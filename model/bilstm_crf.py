@@ -15,7 +15,7 @@ class BiLSTM_CRF(nn.Module):
         self.tag_to_ix = tag_to_ix
         self.tagset_size = len(tag_to_ix)
 
-        self.word_embeds = nn.Embedding(vocab_size, embedding_dim)
+        self.word_embeds = nn.Embedding(vocab_size, embedding_dim, padding_idx=0)
         self.lstm = nn.LSTM(embedding_dim, hidden_dim // 2, batch_first=True,
                             num_layers=1, bidirectional=True)
 
@@ -154,3 +154,34 @@ class BiLSTM_CRF(nn.Module):
         tag_seqs = torch.stack(tag_seqs)
 
         return scores, tag_seqs
+
+
+class BiLSTM_CRF_SLU(BiLSTM_CRF):
+    def __init__(self, vocab_size, tag_to_ix, class_to_ix, embedding_dim, hidden_dim):
+        super(BiLSTM_CRF_SLU, self).__init__(vocab_size, tag_to_ix, embedding_dim, hidden_dim)
+
+        self.class_to_ix = class_to_ix
+        self.class_size = len(class_to_ix)
+
+        self.hidden2class = nn.Linear(self.hidden_dim, self.class_size)
+        self.ce_loss = nn.CrossEntropyLoss()
+
+    def _class_features(self):
+        lstm_hidden = self.hidden[0].transpose(0, 1).contiguous().view(-1, self.hidden_dim)
+        class_feats = self.hidden2class(lstm_hidden)
+
+        return class_feats
+
+    def neg_log_likelihood(self, sentence, tags, classes):
+        tag_loss = super(BiLSTM_CRF_SLU, self).neg_log_likelihood(sentence, tags)
+        class_feats = self._class_features()
+        class_loss = self.ce_loss(class_feats, classes.squeeze(-1))
+
+        return tag_loss, class_loss
+
+    def forward(self, sentences):
+        scores, tag_seqs = super(BiLSTM_CRF_SLU, self).forward(sentences)
+        class_feats = self._class_features()
+        class_probs = nn.functional.softmax(class_feats, dim=-1)
+
+        return scores, tag_seqs, class_probs

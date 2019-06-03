@@ -4,7 +4,7 @@ from model.bilstm_crf import BiLSTM_CRF
 from train.train_ner_model import NERModelTrainer
 
 
-def test_model_train_with_train_data_upto_99_f1_score():
+def test_model_train_with_train_data_over_90_f1_score():
     embedding_dim = 50
     hidden_dim = 50
     epochs = 400
@@ -36,4 +36,4 @@ def test_model_train_with_train_data_upto_99_f1_score():
 
     ner_trainer.train()
 
-    assert ner_trainer.best_val_f1_score > 0.99
+    assert ner_trainer.best_val_f1_score > 0.90
