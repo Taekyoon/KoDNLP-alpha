@@ -6,7 +6,7 @@ from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader
 
 from configs.constants import INPUT_VOCAB_FILENAME, TAG_VOCAB_FILENAME, CLASS_VOCAB_FILENAME, \
-    TRAIN_DATASET_FILENAME, VALIDATION_DATASET_FILENAME, RANDOM_SEED
+    TRAIN_DATASET_FILENAME, VALIDATION_DATASET_FILENAME, INSTANT_DATASET_FILENAME, RANDOM_SEED
 
 from data.vocab import Vocabulary
 from data.tokenizer import Tokenizer
@@ -177,7 +177,7 @@ class SLUDatasetBuilder(object):
                  input_vocab: Vocabulary = None,
                  label_vocab: Vocabulary = None,
                  class_vocab: Vocabulary = None,
-                 dataset_dir: str = Path('./dataset/ner')):
+                 dataset_dir: str = Path('./dataset/slu')):
         self._input_path = input_path
         self._label_path = label_path
         self._class_path = class_path
@@ -228,18 +228,19 @@ class SLUDatasetBuilder(object):
         return
 
     def build_trainable_dataset(self,
-                                train_data_path: str = None,
-                                valid_data_path: str = None) -> None:
+                                train_data_save_path: str = None,
+                                valid_data_save_path: str = None) -> None:
         if self._input_vocab is None or self._label_vocab is None:
             raise ValueError()
 
         train_data = dict()
-        train_data_path = self._dataset_dir / TRAIN_DATASET_FILENAME if train_data_path is None else train_data_path
+        train_data_save_path = self._dataset_dir / TRAIN_DATASET_FILENAME if train_data_save_path is None else train_data_save_path
 
         valid_data = dict()
-        valid_data_path = self._dataset_dir / VALIDATION_DATASET_FILENAME if valid_data_path is None else valid_data_path
+        valid_data_save_path = self._dataset_dir / VALIDATION_DATASET_FILENAME if valid_data_save_path is None else valid_data_save_path
 
-        train_raw_data, valid_raw_data = self._split_into_valid_and_train(self._raw_input, self._raw_label, self._raw_class)
+        train_raw_data, valid_raw_data = self._split_into_valid_and_train(self._raw_input, self._raw_label,
+                                                                          self._raw_class)
 
         train_data['inputs'] = self._numerize_from_text(train_raw_data[0], self._input_vocab)
         train_data['slots'] = self._numerize_from_text(train_raw_data[1], self._label_vocab)
@@ -249,13 +250,34 @@ class SLUDatasetBuilder(object):
         valid_data['slots'] = self._numerize_from_text(valid_raw_data[1], self._label_vocab)
         valid_data['intents'] = self._numerize_from_text(valid_raw_data[2], self._class_vocab)
 
-        self._save_as_json(train_data, train_data_path)
-        self._save_as_json(valid_data, valid_data_path)
+        self._save_as_json(train_data, train_data_save_path)
+        self._save_as_json(valid_data, valid_data_save_path)
 
-        self._train_data_path.append(train_data_path)
-        self._valid_data_path.append(valid_data_path)
+        self._train_data_path.append(train_data_save_path)
+        self._valid_data_path.append(valid_data_save_path)
 
         return
+
+    def build_instant_data_loader(self, input_path, label_path, class_path, data_path=None):
+        instant_data = dict()
+        data_path = self._dataset_dir / INSTANT_DATASET_FILENAME if data_path is None else data_path
+
+        input_data = self._load_text(input_path)
+        label_data = self._load_text(label_path)
+        class_data = self._load_text(class_path)
+
+        instant_data['inputs'] = self._numerize_from_text(input_data, self._input_vocab)
+        instant_data['slots'] = self._numerize_from_text(label_data, self._label_vocab)
+        instant_data['intents'] = self._numerize_from_text(class_data, self._class_vocab)
+
+        self._save_as_json(instant_data, data_path)
+
+        instant_dataset = SLUDatasetFromJSONFile(data_path)
+
+        instant_data_loader = DataLoader(instant_dataset,
+                                         batch_size=1)
+
+        return instant_data_loader
 
     def build_data_loader(self, batch_size, limit_pad_len, enable_length=True):
         train_dataset = SLUDatasetFromJSONFile(self._train_data_path[0],

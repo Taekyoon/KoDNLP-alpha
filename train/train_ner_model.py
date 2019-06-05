@@ -4,10 +4,11 @@ import torch
 import numpy as np
 from tqdm import tqdm
 
+from train.trainer import Trainer
 from train.metrics import f1
 
 
-class NERModelTrainer(object):
+class NERModelTrainer(Trainer):
     def __init__(self,
                  train_data_loader,
                  valid_data_loader,
@@ -31,16 +32,16 @@ class NERModelTrainer(object):
         self._optimizer = optimizer(params=self._model.parameters(), lr=self._learning_rate)
 
         self._device = torch.device('cuda:' + str(gpu_device)) if torch.cuda.is_available() \
-                                                                  and gpu_device > 0 else torch.device('cpu')
+                                                                  and gpu_device >= 0 else torch.device('cpu')
+
+        if self._device.type == 'cpu':
+            torch.manual_seed(self._random_seed)
+        else:
+            torch.cuda.manual_seed_all(self._random_seed)
 
         self.best_val_f1_score = 0.
 
         self._metric_fn = metric_fn
-
-    def train(self):
-        torch.manual_seed(self._random_seed)
-        for i in range(self._epochs):
-            self._train_epoch(i)
 
     def _eval(self):
         score, f1_score = 0., 0.
@@ -51,16 +52,18 @@ class NERModelTrainer(object):
 
         for step, sampled_batch in tqdm(enumerate(self._valid_data_loader), desc='valid steps',
                                         total=len(self._valid_data_loader)):
-            input_batch = torch.squeeze(sampled_batch['inputs']['value'], dim=1)
-            target_batch = torch.squeeze(sampled_batch['entities'], dim=1)
+            batch_size = sampled_batch['inputs']['value'].size(0)
+
+            input_batch = sampled_batch['inputs']['value'].view(batch_size, -1).to(self._device)
+            target_batch = sampled_batch['entities'].view(batch_size, -1).to(self._device)
 
             pred_score, tag_seq = self._model(input_batch)
             score += torch.mean(pred_score)
-            accumulated_preds.append(tag_seq.numpy())
-            accumulated_targets.append(target_batch.numpy())
+            accumulated_preds.append(tag_seq.cpu().numpy())
+            accumulated_targets.append(target_batch.cpu().numpy())
         else:
             score = score / (step + 1)
-            f1_score = f1(np.array(accumulated_preds), np.array(accumulated_targets))
+            f1_score = f1(np.concatenate(accumulated_preds, axis=None), np.concatenate(accumulated_targets, axis=None))
 
         return score, f1_score
 
@@ -73,14 +76,15 @@ class NERModelTrainer(object):
 
         for step, sampled_batch in tqdm(enumerate(self._train_data_loader), desc='train steps',
                                         total=len(self._train_data_loader)):
+            batch_size = sampled_batch['inputs']['value'].size(0)
             total_steps = epoch * steps_in_epoch + (step + 1)
 
-            input_batch = torch.squeeze(sampled_batch['inputs']['value'], dim=1)
-            target_batch = torch.squeeze(sampled_batch['entities'], dim=1)
+            input_batch = sampled_batch['inputs']['value'].view(batch_size, -1).to(self._device)
+            target_batch = sampled_batch['entities'].view(batch_size, -1).to(self._device)
 
             loss = self._model.neg_log_likelihood(input_batch, target_batch)
             tr_loss += loss
-            self._backprop(loss)
+            self._backprop(loss, self._optimizer)
 
             if total_steps % self._eval_steps == 0:
                 val_score, val_f1 = self._eval()
@@ -92,13 +96,3 @@ class NERModelTrainer(object):
                                                                                                            tr_loss / (step + 1),
                                                                                                            val_f1,
                                                                                                            val_score))
-
-    def _backprop(self, loss) -> None:
-        optimizer = self._optimizer
-
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-
-    def _save_model(self):
-        pass

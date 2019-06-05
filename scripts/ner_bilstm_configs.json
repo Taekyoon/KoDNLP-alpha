@@ -1,0 +1,25 @@
+{
+  "type": "ner",
+  "gpu_device": -1,
+  "dataset": {
+    "vocab_min_freq": 50,
+    "input": "./data_corpus/naver_korean_ner/train/input.txt",
+    "label": "./data_corpus/naver_korean_ner/train/output.txt"
+  },
+  "deploy": {
+    "path": "./tmp/ner_initial_test"
+  },
+  "model": {
+    "type": "bilstm_crf",
+    "parameters": {
+      "word_embedding_dims": 150,
+      "hidden_dims": 300
+    }
+  },
+  "train": {
+    "epochs": 10,
+    "eval_steps": 500,
+    "batch_size": 128,
+    "sequence_length": 25
+  }
+}

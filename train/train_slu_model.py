@@ -1,22 +1,23 @@
+from train.trainer import Trainer
 from configs.constants import RANDOM_SEED
 
 import torch
 import numpy as np
 from tqdm import tqdm
 
-from train.metrics import f1
+from train.metrics import f1, acc
 
 
-class SLUModelTrainer(object):
+class SLUModelTrainer(Trainer):
     def __init__(self,
                  train_data_loader,
                  valid_data_loader,
                  model,
                  epochs,
                  eval_steps,
-                 learning_rate=1e-4,
+                 best_model_path='./tmp/',
+                 learning_rate=3e-4,
                  optimizer=torch.optim.Adam,
-                 metric_fn=None,
                  gpu_device=-1,
                  random_seed=RANDOM_SEED):
 
@@ -31,20 +32,18 @@ class SLUModelTrainer(object):
         self._optimizer = optimizer(params=self._model.parameters(), lr=self._learning_rate)
 
         self._device = torch.device('cuda:' + str(gpu_device)) if torch.cuda.is_available() \
-                                                                  and gpu_device > 0 else torch.device('cpu')
+                                                                  and gpu_device >= 0 else torch.device('cpu')
+
+        if self._device.type == 'cpu':
+            torch.manual_seed(self._random_seed)
+        else:
+            torch.cuda.manual_seed_all(self._random_seed)
 
         self.best_tag_val_f1_score = 0.
         self.best_class_val_f1_score = 0.
 
-        self._metric_fn = metric_fn
-
-    def train(self):
-        torch.manual_seed(self._random_seed)
-        for i in range(self._epochs):
-            self._train_epoch(i)
-
     def _eval(self):
-        score, f1_score = 0., 0.
+        score = 0.
 
         self._model.eval()
 
@@ -53,24 +52,28 @@ class SLUModelTrainer(object):
 
         for step, sampled_batch in tqdm(enumerate(self._valid_data_loader), desc='valid steps',
                                         total=len(self._valid_data_loader)):
-            input_batch = torch.squeeze(sampled_batch['inputs']['value'], dim=1)
-            target_batch = torch.squeeze(sampled_batch['slots'], dim=1)
-            class_batch = sampled_batch['intents']
+            batch_size = sampled_batch['inputs']['value'].size(0)
+
+            input_batch = sampled_batch['inputs']['value'].view(batch_size, -1).to(self._device)
+            target_batch = sampled_batch['slots'].view(batch_size, -1).to(self._device)
+            class_batch = sampled_batch['intents'].to(self._device)
 
             pred_score, tag_seq, class_prob = self._model(input_batch)
             score += torch.mean(pred_score)
 
-            accumulated_tag_preds.append(tag_seq.numpy())
-            accumulated_tag_targets.append(target_batch.numpy())
+            accumulated_tag_preds.append(tag_seq.cpu().numpy())
+            accumulated_tag_targets.append(target_batch.cpu().numpy())
 
-            accumulated_class_preds.append(torch.argmax(class_prob, dim=-1).numpy())
-            accumulated_class_targets.append(class_batch.numpy())
+            accumulated_class_preds.append(torch.argmax(class_prob, dim=-1).cpu().numpy())
+            accumulated_class_targets.append(class_batch.cpu().numpy())
         else:
             score = score / (step + 1)
-            tag_f1_score = f1(np.array(accumulated_tag_preds), np.array(accumulated_tag_targets))
-            class_f1_score = f1(np.array(accumulated_class_preds), np.array(accumulated_class_targets))
+            tag_f1_score = f1(np.concatenate(accumulated_tag_preds, axis=None),
+                              np.concatenate(accumulated_tag_targets, axis=None))
+            class_acc_score = acc(np.concatenate(accumulated_class_preds, axis=None),
+                                  np.concatenate(accumulated_class_targets, axis=None))
 
-        return score, tag_f1_score, class_f1_score
+        return score, tag_f1_score, class_acc_score
 
     def _train_epoch(self, epoch):
         steps_in_epoch = len(self._train_data_loader)
@@ -82,44 +85,39 @@ class SLUModelTrainer(object):
         for step, sampled_batch in tqdm(enumerate(self._train_data_loader), desc='train steps',
                                         total=len(self._train_data_loader)):
             total_steps = epoch * steps_in_epoch + (step + 1)
+            batch_size = sampled_batch['inputs']['value'].size(0)
 
-            input_batch = torch.squeeze(sampled_batch['inputs']['value'], dim=1)
-            target_batch = torch.squeeze(sampled_batch['slots'], dim=1)
-            class_batch = sampled_batch['intents']
+            input_batch = sampled_batch['inputs']['value'].view(batch_size, -1).to(self._device)
+            target_batch = sampled_batch['slots'].view(batch_size, -1).to(self._device)
+            class_batch = sampled_batch['intents'].to(self._device)
+            input_len_batch = sampled_batch['inputs']['length'].view(batch_size)
 
-            tag_loss, class_loss = self._model.neg_log_likelihood(input_batch, target_batch, class_batch)
+            tag_loss, class_loss = self._model.neg_log_likelihood(input_batch, target_batch, class_batch,
+                                                                  input_len_batch)
 
             tr_tag_loss += tag_loss
             tr_class_loss += class_loss
 
             loss = tag_loss + class_loss
             tr_loss += loss
-            self._backprop(loss)
+            self._backprop(loss, self._optimizer)
 
             if total_steps % self._eval_steps == 0:
-                val_score, val_tag_f1, val_class_f1 = self._eval()
-                self.best_tag_val_f1_score = val_tag_f1 if val_tag_f1 > self.best_tag_val_f1_score \
-                    else self.best_tag_val_f1_score
-                self.best_class_val_f1_score = val_class_f1 if val_class_f1 > self.best_class_val_f1_score \
-                    else self.best_class_val_f1_score
+                val_score, val_tag_f1, val_class_acc = self._eval()
+
+                if val_class_acc >= self.best_class_val_f1_score and val_tag_f1 >= self.best_tag_val_f1_score:
+                    self.best_class_val_f1_score = val_class_acc
+                    self.best_tag_val_f1_score = val_tag_f1
+                    # self._save_model(self.model, )
+
                 self._model.train()
                 tqdm.write(
                     'epoch : {}, steps : {}, tr_loss : {:.3f}, tr_tag_loss : {:.3f}, tr_class_loss : {:.3f}, '
-                    'val_tag_f1 : {:.3f}, val_score : {:.3f}, val_class_f1 : {:.3f}'.format(epoch + 1,
-                                                                                            total_steps,
-                                                                                            tr_loss / (step + 1),
-                                                                                            tr_tag_loss / (step + 1),
-                                                                                            tr_class_loss / (step + 1),
-                                                                                            val_tag_f1,
-                                                                                            val_score,
-                                                                                            val_class_f1))
-
-    def _backprop(self, loss) -> None:
-        optimizer = self._optimizer
-
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-
-    def _save_model(self):
-        pass
+                    'val_tag_f1 : {:.3f}, val_score : {:.3f}, val_class_acc : {:.3f}'.format(epoch + 1,
+                                                                                             total_steps,
+                                                                                             tr_loss / (step + 1),
+                                                                                             tr_tag_loss / (step + 1),
+                                                                                             tr_class_loss / (step + 1),
+                                                                                             val_tag_f1,
+                                                                                             val_score,
+                                                                                             val_class_acc))

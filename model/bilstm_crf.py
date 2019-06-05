@@ -7,17 +7,18 @@ from model.utils import log_sum_exp, argmax
 
 class BiLSTM_CRF(nn.Module):
 
-    def __init__(self, vocab_size, tag_to_ix, embedding_dim, hidden_dim):
+    def __init__(self, vocab_size, tag_to_ix, embedding_dim, hidden_dim, dropout=0.5, num_layers=1):
         super(BiLSTM_CRF, self).__init__()
         self.embedding_dim = embedding_dim
         self.hidden_dim = hidden_dim
         self.vocab_size = vocab_size
         self.tag_to_ix = tag_to_ix
         self.tagset_size = len(tag_to_ix)
+        self.num_layers = num_layers
 
         self.word_embeds = nn.Embedding(vocab_size, embedding_dim, padding_idx=0)
         self.lstm = nn.LSTM(embedding_dim, hidden_dim // 2, batch_first=True,
-                            num_layers=1, bidirectional=True)
+                            num_layers=num_layers, bidirectional=True, dropout=dropout)
 
         # Maps the output of the LSTM into tag space.
         self.hidden2tag = nn.Linear(hidden_dim, self.tagset_size)
@@ -32,17 +33,24 @@ class BiLSTM_CRF(nn.Module):
         self.transitions.data[tag_to_ix[START_TAG], :] = -10000
         self.transitions.data[:, tag_to_ix[STOP_TAG]] = -10000
 
+        self.device = torch.device('cpu')
         # self.hidden = self.init_hidden()
 
+    def to(self, device):
+        super(BiLSTM_CRF, self).to(device)
+        self.device = device
+
+        return
+
     def init_hidden(self, batch_size):
-        return (torch.randn(2, batch_size, self.hidden_dim // 2),
-                torch.randn(2, batch_size, self.hidden_dim // 2))
+        return (torch.randn(2 * self.num_layers, batch_size, self.hidden_dim // 2).to(self.device),
+                torch.randn(2 * self.num_layers, batch_size, self.hidden_dim // 2).to(self.device))
 
     def _forward_alg(self, feats):
         batch_size = feats.size(0)
         sequence_length = feats.size(1)
         # Do the forward algorithm to compute the partition function
-        init_alphas = torch.full((batch_size, self.tagset_size), -10000.)
+        init_alphas = torch.full((batch_size, self.tagset_size), -10000.).to(self.device)
         # START_TAG has all of the score.
         init_alphas[:, self.tag_to_ix[START_TAG]] = 0.
 
@@ -59,13 +67,17 @@ class BiLSTM_CRF(nn.Module):
         alpha = log_sum_exp(terminal_var)
         return alpha
 
-    def _get_lstm_features(self, sentence):
+    def _get_lstm_features(self, sentence, lens=None):
         batch_size = sentence.size(0)
         self.hidden = self.init_hidden(batch_size)
 
         embeds = self.word_embeds(sentence)
 
-        lstm_out, self.hidden = self.lstm(embeds, self.hidden)
+        lstm_out, _ = self.lstm(embeds, self.hidden)
+        if lens is not None:
+            self.hidden = torch.cat([lstm_out[i, l-1, :] for i, l in enumerate(lens)]).view(batch_size, -1)
+        else:
+            self.hidden = lstm_out[:, -1, :]
         lstm_feats = self.hidden2tag(lstm_out)
         return lstm_feats
 
@@ -78,8 +90,8 @@ class BiLSTM_CRF(nn.Module):
 
     def _score_sentence(self, feats, tags):
         # Gives the score of a provided tag sequence
-        score = torch.zeros(1)
-        tags = torch.cat([torch.tensor([self.tag_to_ix[START_TAG]], dtype=torch.long), tags])
+        score = torch.zeros(1).to(self.device)
+        tags = torch.cat([torch.tensor([self.tag_to_ix[START_TAG]], dtype=torch.long).to(self.device), tags])
         for i, feat in enumerate(feats):
             score = score + self.transitions[tags[i + 1], tags[i]] + feat[tags[i + 1]]
         score = score + self.transitions[self.tag_to_ix[STOP_TAG], tags[-1]]
@@ -89,7 +101,7 @@ class BiLSTM_CRF(nn.Module):
         backpointers = []
 
         # Initialize the viterbi variables in log space
-        init_vvars = torch.full((1, self.tagset_size), -10000.)
+        init_vvars = torch.full((1, self.tagset_size), -10000.).to(self.device)
         init_vvars[0][self.tag_to_ix[START_TAG]] = 0
 
         # forward_var at step i holds the viterbi variables for step i-1
@@ -132,8 +144,8 @@ class BiLSTM_CRF(nn.Module):
 
         return path_score, best_path
 
-    def neg_log_likelihood(self, sentence, tags):
-        feats = self._get_lstm_features(sentence)
+    def neg_log_likelihood(self, sentence, tags, lens=None):
+        feats = self._get_lstm_features(sentence, lens=lens)
         forward_score = self._forward_alg(feats)
         gold_score = self._score_batch_sentences(feats, tags)
 
@@ -157,8 +169,9 @@ class BiLSTM_CRF(nn.Module):
 
 
 class BiLSTM_CRF_SLU(BiLSTM_CRF):
-    def __init__(self, vocab_size, tag_to_ix, class_to_ix, embedding_dim, hidden_dim):
-        super(BiLSTM_CRF_SLU, self).__init__(vocab_size, tag_to_ix, embedding_dim, hidden_dim)
+    def __init__(self, vocab_size, tag_to_ix, class_to_ix, embedding_dim, hidden_dim, num_layers=1, dropout=0.5):
+        super(BiLSTM_CRF_SLU, self).__init__(vocab_size, tag_to_ix, embedding_dim, hidden_dim,
+                                             num_layers=num_layers, dropout=dropout)
 
         self.class_to_ix = class_to_ix
         self.class_size = len(class_to_ix)
@@ -167,13 +180,12 @@ class BiLSTM_CRF_SLU(BiLSTM_CRF):
         self.ce_loss = nn.CrossEntropyLoss()
 
     def _class_features(self):
-        lstm_hidden = self.hidden[0].transpose(0, 1).contiguous().view(-1, self.hidden_dim)
-        class_feats = self.hidden2class(lstm_hidden)
+        class_feats = self.hidden2class(self.hidden)
 
         return class_feats
 
-    def neg_log_likelihood(self, sentence, tags, classes):
-        tag_loss = super(BiLSTM_CRF_SLU, self).neg_log_likelihood(sentence, tags)
+    def neg_log_likelihood(self, sentence, tags, classes, lens):
+        tag_loss = super(BiLSTM_CRF_SLU, self).neg_log_likelihood(sentence, tags, lens=lens)
         class_feats = self._class_features()
         class_loss = self.ce_loss(class_feats, classes.squeeze(-1))
 
