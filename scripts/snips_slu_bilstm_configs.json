@@ -4,14 +4,14 @@
   "dataset": {
     "train": {
       "vocab_min_freq": 5,
-      "input": "./data_corpus/snips/train/seq.in",
-      "slots": "./data_corpus/snips/train/seq.out",
-      "intents": "./data_corpus/snips/train/label"
+      "input": "./corpus/snips/train/seq.in",
+      "slots": "./corpus/snips/train/seq.out",
+      "intents": "./corpus/snips/train/label"
     },
     "test": {
-      "input": "./data_corpus/snips/test/seq.in",
-      "slots": "./data_corpus/snips/test/seq.out",
-      "intents": "./data_corpus/snips/test/label"
+      "input": "./corpus/snips/test/seq.in",
+      "slots": "./corpus/snips/test/seq.out",
+      "intents": "./corpus/snips/test/label"
     }
   },
   "deploy": {

@@ -185,7 +185,7 @@ class BiLSTM_CRF_SLU(BiLSTM_CRF):
         self.hidden2class = nn.Linear(self.hidden_dim, self.class_size)
         self.ce_loss = nn.CrossEntropyLoss()
 
-        torch.nn.init.xavier_uniform(self.hidden2class.weight)
+        torch.nn.init.xavier_uniform_(self.hidden2class.weight)
 
     def _class_features(self):
         class_feats = self.hidden2class(self.hidden)
