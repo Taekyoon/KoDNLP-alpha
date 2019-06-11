@@ -4,6 +4,7 @@ from configs.constants import RANDOM_SEED
 import torch
 import numpy as np
 from tqdm import tqdm
+from pathlib import Path
 
 from train.metrics import f1, acc
 
@@ -15,7 +16,7 @@ class SLUModelTrainer(Trainer):
                  model,
                  epochs,
                  eval_steps,
-                 best_model_path='./tmp/',
+                 deploy_path=Path('./tmp'),
                  learning_rate=3e-4,
                  optimizer=torch.optim.Adam,
                  gpu_device=-1,
@@ -25,6 +26,8 @@ class SLUModelTrainer(Trainer):
         self._eval_steps = eval_steps
         self._learning_rate = learning_rate
         self._random_seed = random_seed
+
+        self._deploy_path = deploy_path
 
         self._train_data_loader = train_data_loader
         self._valid_data_loader = valid_data_loader
@@ -39,8 +42,9 @@ class SLUModelTrainer(Trainer):
         else:
             torch.cuda.manual_seed_all(self._random_seed)
 
+        self.train_loss = -1
         self.best_tag_val_f1_score = 0.
-        self.best_class_val_f1_score = 0.
+        self.best_class_val_acc_score = 0.
 
     def _eval(self):
         score = 0.
@@ -105,10 +109,11 @@ class SLUModelTrainer(Trainer):
             if total_steps % self._eval_steps == 0:
                 val_score, val_tag_f1, val_class_acc = self._eval()
 
-                if val_class_acc >= self.best_class_val_f1_score and val_tag_f1 >= self.best_tag_val_f1_score:
-                    self.best_class_val_f1_score = val_class_acc
+                if val_class_acc >= self.best_class_val_acc_score and val_tag_f1 >= self.best_tag_val_f1_score:
+                    self.best_class_val_acc_score = val_class_acc
                     self.best_tag_val_f1_score = val_tag_f1
-                    # self._save_model(self.model, )
+
+                    self._save_model(self._model, self._deploy_path / 'best_val.pkl')
 
                 self._model.train()
                 tqdm.write(
@@ -121,3 +126,8 @@ class SLUModelTrainer(Trainer):
                                                                                              val_tag_f1,
                                                                                              val_score,
                                                                                              val_class_acc))
+                filename = 'checkpoint_' + str(total_steps) + '_model.pkl'
+                self._save_model(self._model, self._deploy_path / 'checkpoint' / filename)
+
+        else:
+            return tr_loss / (step + 1)

@@ -1,4 +1,4 @@
-from konlpy.tag import Komoran
+from konlpy.tag import Komoran, Mecab
 
 from typing import List
 
@@ -36,6 +36,16 @@ class EumjeolTokenizer(Tokenizer):
 class KomoranTokenizer(Tokenizer):
     def __init__(self):
         super(KomoranTokenizer, self).__init__(Komoran())
+
+    def _operate(self, sent: str) -> str:
+        tokenized_list = self.model.morphs(sent)
+
+        return ' '.join(tokenized_list).rstrip()
+
+
+class MecabTokenizer(Tokenizer):
+    def __init__(self):
+        super(MecabTokenizer, self).__init__(Mecab())
 
     def _operate(self, sent: str) -> str:
         tokenized_list = self.model.morphs(sent)

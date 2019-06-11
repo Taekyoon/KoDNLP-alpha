@@ -1,7 +1,8 @@
 import copy
-
+import json
 from typing import List
 from collections import Counter
+from pathlib import Path
 
 
 class Vocabulary(object):
@@ -76,12 +77,43 @@ class Vocabulary(object):
 
         return tokens[0] if to_reduce else tokens
 
-    def to_json(self, json_path):
-        pass
+    def to_json(self, json_path: Path) -> None:
+        vocab_obj = dict()
 
-    @classmethod
-    def from_json(cls, json_path):
-        pass
+        vocab_obj['max_size'] = self.max_size
+        vocab_obj['min_freq'] = self.min_freq
+        vocab_obj['vocab_size'] = self.vocab_size
+        vocab_obj['unknown_token'] = self.unknown_token
+        vocab_obj['padding_token'] = self.padding_token
+        vocab_obj['bos_token'] = self.bos_token
+        vocab_obj['eos_token'] = self.eos_token
+        vocab_obj['reserved_tokens'] = self.reserved_tokens
+        vocab_obj['word_frequency'] = dict(self.word_frequency)
+        vocab_obj['word_to_idx'] = self._word_to_idx
+        vocab_obj['idx_to_word'] = self._idx_to_word
+
+        with open(json_path, 'w') as jsonfile:
+            json.dump(vocab_obj, jsonfile, indent=4)
+
+        return
+
+    def from_json(self, json_path: Path) -> None:
+        with open(json_path, 'r') as jsonfile:
+            vocab_obj = json.load(jsonfile)
+
+        self.max_size = vocab_obj['max_size']
+        self.min_freq = vocab_obj['min_freq']
+        self.vocab_size = vocab_obj['vocab_size']
+        self.unknown_token = vocab_obj['unknown_token']
+        self.padding_token = vocab_obj['padding_token']
+        self.bos_token = vocab_obj['bos_token']
+        self.eos_token = vocab_obj['eos_token']
+        self.reserved_tokens = vocab_obj['reserved_tokens']
+        self.word_frequency = Counter(vocab_obj['word_frequency'])
+        self._word_to_idx = vocab_obj['word_to_idx']
+        self._idx_to_word = vocab_obj['idx_to_word']
+
+        return
 
     @property
     def word_to_idx(self):
@@ -100,6 +132,32 @@ class Vocabulary(object):
         else:
             return [self._word_to_idx[w] if w in self._word_to_idx else self._word_to_idx[self.unknown_token]
                     for w in words]
+
+    def __eq__(self, other):
+        if not self.max_size == other.max_size:
+            return False
+        if not self.min_freq == other.min_freq:
+            return False
+        if not self.vocab_size == other.vocab_size:
+            return False
+        if not self.unknown_token == other.unknown_token:
+            return False
+        if not self.padding_token == other.padding_token:
+            return False
+        if not self.bos_token == other.bos_token:
+            return False
+        if not self.eos_token == other.eos_token:
+            return False
+        if not self.reserved_tokens == other.reserved_tokens:
+            return False
+        if not self.word_frequency == other.word_frequency:
+            return False
+        if not self._word_to_idx == other.word_to_idx:
+            return False
+        if not self._idx_to_word == other.idx_to_word:
+            return False
+
+        return True
 
     def _create_word_dict(self) -> None:
         self._word_to_idx = dict()

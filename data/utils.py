@@ -1,17 +1,4 @@
-import os
-
 import numpy as np
-
-from pathlib import Path
-
-
-def make_dir_if_not_exist(dir_path: str):
-    if not os.path.exists(dir_path):
-        os.makedirs(dir_path)
-
-
-def get_filelines(path: Path) -> int:
-    return sum([1 for _ in open(path)])
 
 
 def pad_sequences(dataset, limit_len, pad_value=0):

@@ -3,6 +3,7 @@ from configs.constants import RANDOM_SEED
 import torch
 import numpy as np
 from tqdm import tqdm
+from pathlib import Path
 
 from train.trainer import Trainer
 from train.metrics import f1
@@ -15,6 +16,7 @@ class NERModelTrainer(Trainer):
                  model,
                  epochs,
                  eval_steps,
+                 deploy_path=Path('./tmp'),
                  learning_rate=1e-4,
                  optimizer=torch.optim.Adam,
                  metric_fn=None,
@@ -25,6 +27,8 @@ class NERModelTrainer(Trainer):
         self._eval_steps = eval_steps
         self._learning_rate = learning_rate
         self._random_seed = random_seed
+
+        self._deploy_path = deploy_path
 
         self._train_data_loader = train_data_loader
         self._valid_data_loader = valid_data_loader
@@ -39,6 +43,7 @@ class NERModelTrainer(Trainer):
         else:
             torch.cuda.manual_seed_all(self._random_seed)
 
+        self.train_loss = -1
         self.best_val_f1_score = 0.
 
         self._metric_fn = metric_fn
@@ -88,7 +93,12 @@ class NERModelTrainer(Trainer):
 
             if total_steps % self._eval_steps == 0:
                 val_score, val_f1 = self._eval()
-                self.best_val_f1_score = val_f1 if val_f1 > self.best_val_f1_score else self.best_val_f1_score
+
+                if val_f1 > self.best_val_f1_score:
+                    self.best_val_f1_score = val_f1
+
+                    self._save_model(self._model, self._deploy_path / 'best_val.pkl')
+
                 self._model.train()
                 tqdm.write(
                     'epoch : {}, steps : {}, tr_loss : {:.3f}, val_f1 : {:.3f}, val_score : {:.3f}'.format(epoch + 1,
@@ -96,3 +106,7 @@ class NERModelTrainer(Trainer):
                                                                                                            tr_loss / (step + 1),
                                                                                                            val_f1,
                                                                                                            val_score))
+                filename = 'checkpoint_' + str(total_steps) + '_model.pkl'
+                self._save_model(self._model, self._deploy_path / 'checkpoint' / filename)
+        else:
+            return tr_loss / (step + 1)

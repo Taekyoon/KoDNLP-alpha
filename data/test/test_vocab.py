@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from data.vocab import Vocabulary
 
 
@@ -36,3 +38,19 @@ def test_unknown_token_to_index():
 
     assert unknown_index == vocab.to_indices(unknown_token)
     assert unknown_indices == vocab.to_indices(unknown_tokens)
+
+
+def test_vocab_obj_as_json():
+    json_path = Path('data/test/test_dataset/vocab_test.json')
+
+    dummy_inputs = [['나는', '한국에', '살고', '있어요'],
+                    ['한국에', '사는건', '쉽지', '않아요'],
+                    ['학교종이', '울리면', '모여야', '해요'],
+                    ['학교종이', '울리지', '않으면', '어디로', '가야', '하죠']]
+    vocab, dummy_vocab = Vocabulary(), Vocabulary()
+    vocab.fit(dummy_inputs)
+
+    vocab.to_json(json_path)
+    dummy_vocab.from_json(json_path)
+
+    assert vocab == dummy_vocab

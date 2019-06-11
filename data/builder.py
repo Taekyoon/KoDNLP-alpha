@@ -9,25 +9,75 @@ from configs.constants import INPUT_VOCAB_FILENAME, TAG_VOCAB_FILENAME, CLASS_VO
     TRAIN_DATASET_FILENAME, VALIDATION_DATASET_FILENAME, INSTANT_DATASET_FILENAME, RANDOM_SEED
 
 from data.vocab import Vocabulary
-from data.tokenizer import Tokenizer
-from data.utils import get_filelines, make_dir_if_not_exist
+from utils import make_dir_if_not_exist, get_filelines
 from data.dataset import NERDatasetFromJSONFile, SLUDatasetFromJSONFile
 
 
-class NERDatasetBuilder(object):
+class DatasetBuilder(object):
+    @property
+    def input_vocab(self):
+        return self._input_vocab
+
+    @property
+    def tag_vocab(self):
+        return self._label_vocab
+
+    @property
+    def word_to_idx(self):
+        return self._input_vocab.word_to_idx
+
+    @property
+    def tag_to_idx(self):
+        return self._label_vocab.word_to_idx
+
+    def _split_into_valid_and_train(self, input, label, test_size=0.1, random_state=RANDOM_SEED):
+        raise NotImplementedError()
+
+    def _numerize_from_text(self, data: List[str], vocab: Vocabulary):
+        splited_data = self._splitify(data)
+
+        return [vocab.to_indices(s_d) for s_d in splited_data]
+
+    def _splitify(self, data: List[str]) -> List[List]:
+        return [s.split() for s in data]
+
+    def _load_text(self, path: Path) -> List[str]:
+        dataset = list()
+        filelines = get_filelines(path)
+
+        with open(path, 'r') as textfile:
+            for i in range(filelines):
+                textline = ''
+                try:
+                    textline = textfile.readline().rstrip().replace('\n', '')
+                except ValueError() as e:
+                    pass
+
+                dataset.append(textline)
+
+        return dataset
+
+    def _save_as_json(self, obj: Dict, json_path: str) -> None:
+        with open(json_path, 'w') as jsonfile:
+            json.dump(obj, jsonfile, indent=4)
+
+        return
+
+    def _build_dataset_dir(self):
+        make_dir_if_not_exist(self._dataset_dir)
+
+
+class NERDatasetBuilder(DatasetBuilder):
     def __init__(self,
                  input_path: Path,
                  label_path: Path,
                  file_type: str = 'text',
-                 tokenizer: Tokenizer = None,
                  input_vocab: Vocabulary = None,
                  label_vocab: Vocabulary = None,
                  dataset_dir: str = Path('./dataset/ner')):
         self._input_path = input_path
         self._label_path = label_path
         self._file_type = file_type
-
-        self._tokenizer = tokenizer
 
         if file_type == 'text':
             self._raw_input = self._load_text(self._input_path)
@@ -110,22 +160,6 @@ class NERDatasetBuilder(object):
 
         return train_data_loader, valid_data_loader
 
-    @property
-    def input_vocab(self):
-        return self._input_vocab
-
-    @property
-    def tag_vocab(self):
-        return self._label_vocab
-
-    @property
-    def word_to_idx(self):
-        return self._input_vocab.word_to_idx
-
-    @property
-    def tag_to_idx(self):
-        return self._label_vocab.word_to_idx
-
     def _split_into_valid_and_train(self, input, label, test_size=0.1, random_state=RANDOM_SEED):
         input_train, input_test, label_train, label_test = train_test_split(input, label,
                                                                             test_size=test_size,
@@ -133,47 +167,13 @@ class NERDatasetBuilder(object):
 
         return (input_train, label_train), (input_test, label_test)
 
-    def _numerize_from_text(self, data: List[str], vocab: Vocabulary):
-        splited_data = self._splitify(data)
 
-        return [vocab.to_indices(s_d) for s_d in splited_data]
-
-    def _splitify(self, data: List[str]) -> List[List]:
-        return [s.split() for s in data]
-
-    def _load_text(self, path: Path) -> List[str]:
-        dataset = list()
-        filelines = get_filelines(path)
-
-        with open(path, 'r') as textfile:
-            for i in range(filelines):
-                textline = ''
-                try:
-                    textline = textfile.readline().rstrip().replace('\n', '')
-                except ValueError() as e:
-                    pass
-
-                dataset.append(textline)
-
-        return dataset
-
-    def _save_as_json(self, obj: Dict, json_path: str) -> None:
-        with open(json_path, 'w') as jsonfile:
-            json.dump(obj, jsonfile)
-
-        return
-
-    def _build_dataset_dir(self):
-        make_dir_if_not_exist(self._dataset_dir)
-
-
-class SLUDatasetBuilder(object):
+class SLUDatasetBuilder(DatasetBuilder):
     def __init__(self,
                  input_path: Path,
                  label_path: Path,
                  class_path: Path,
                  file_type: str = 'text',
-                 tokenizer: Tokenizer = None,
                  input_vocab: Vocabulary = None,
                  label_vocab: Vocabulary = None,
                  class_vocab: Vocabulary = None,
@@ -182,8 +182,6 @@ class SLUDatasetBuilder(object):
         self._label_path = label_path
         self._class_path = class_path
         self._file_type = file_type
-
-        self._tokenizer = tokenizer
 
         if file_type == 'text':
             self._raw_input = self._load_text(self._input_path)
@@ -298,26 +296,6 @@ class SLUDatasetBuilder(object):
         return train_data_loader, valid_data_loader
 
     @property
-    def input_vocab(self):
-        return self._input_vocab
-
-    @property
-    def tag_vocab(self):
-        return self._label_vocab
-
-    @property
-    def class_vocab(self):
-        return self._class_vocab
-
-    @property
-    def word_to_idx(self):
-        return self._input_vocab.word_to_idx
-
-    @property
-    def tag_to_idx(self):
-        return self._label_vocab.word_to_idx
-
-    @property
     def class_to_idx(self):
         return self._class_vocab.word_to_idx
 
@@ -327,37 +305,3 @@ class SLUDatasetBuilder(object):
                                                                                                      random_state=random_state)
 
         return (input_train, label_train, class_train), (input_test, label_test, class_test)
-
-    def _numerize_from_text(self, data: List[str], vocab: Vocabulary, splitify=True):
-        if splitify:
-            data = self._splitify(data)
-
-        return [vocab.to_indices(s_d) for s_d in data]
-
-    def _splitify(self, data: List[str]) -> List[List]:
-        return [s.split() for s in data]
-
-    def _load_text(self, path: Path) -> List[str]:
-        dataset = list()
-        filelines = get_filelines(path)
-
-        with open(path, 'r') as textfile:
-            for i in range(filelines):
-                textline = ''
-                try:
-                    textline = textfile.readline().rstrip().replace('\n', '')
-                except ValueError() as e:
-                    pass
-
-                dataset.append(textline)
-
-        return dataset
-
-    def _save_as_json(self, obj: Dict, json_path: str) -> None:
-        with open(json_path, 'w') as jsonfile:
-            json.dump(obj, jsonfile)
-
-        return
-
-    def _build_dataset_dir(self):
-        make_dir_if_not_exist(self._dataset_dir)

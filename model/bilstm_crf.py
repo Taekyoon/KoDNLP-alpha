@@ -34,6 +34,12 @@ class BiLSTM_CRF(nn.Module):
         self.transitions.data[:, tag_to_ix[STOP_TAG]] = -10000
 
         self.device = torch.device('cpu')
+
+        for name, param in self.lstm.named_parameters():
+            if 'weight' in name:
+                torch.nn.init.xavier_uniform_(param)
+
+        torch.nn.init.xavier_uniform_(self.hidden2tag.weight)
         # self.hidden = self.init_hidden()
 
     def to(self, device):
@@ -43,8 +49,8 @@ class BiLSTM_CRF(nn.Module):
         return
 
     def init_hidden(self, batch_size):
-        return (torch.randn(2 * self.num_layers, batch_size, self.hidden_dim // 2).to(self.device),
-                torch.randn(2 * self.num_layers, batch_size, self.hidden_dim // 2).to(self.device))
+        return (torch.zeros(2 * self.num_layers, batch_size, self.hidden_dim // 2).to(self.device),
+                torch.zeros(2 * self.num_layers, batch_size, self.hidden_dim // 2).to(self.device))
 
     def _forward_alg(self, feats):
         batch_size = feats.size(0)
@@ -178,6 +184,8 @@ class BiLSTM_CRF_SLU(BiLSTM_CRF):
 
         self.hidden2class = nn.Linear(self.hidden_dim, self.class_size)
         self.ce_loss = nn.CrossEntropyLoss()
+
+        torch.nn.init.xavier_uniform(self.hidden2class.weight)
 
     def _class_features(self):
         class_feats = self.hidden2class(self.hidden)

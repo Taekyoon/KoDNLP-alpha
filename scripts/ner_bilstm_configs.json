@@ -2,9 +2,11 @@
   "type": "ner",
   "gpu_device": -1,
   "dataset": {
-    "vocab_min_freq": 50,
-    "input": "./data_corpus/naver_korean_ner/train/input.txt",
-    "label": "./data_corpus/naver_korean_ner/train/output.txt"
+    "train": {
+      "vocab_min_freq": 50,
+      "input": "./data_corpus/naver_korean_ner/train/input.txt",
+      "label": "./data_corpus/naver_korean_ner/train/output.txt"
+    }
   },
   "deploy": {
     "path": "./tmp/ner_initial_test"
