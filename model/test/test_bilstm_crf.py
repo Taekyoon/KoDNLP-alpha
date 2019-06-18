@@ -1,7 +1,7 @@
 import torch
 
 from model.bilstm_crf import BiLSTM_CRF, BiLSTM_CRF_SLU
-from model.utils import prepare_sequence
+from model.operations import prepare_sequence
 from configs.constants import *
 
 EMBEDDING_DIM = 5
@@ -82,7 +82,7 @@ def test_run_slu_model_predict():
     tag_to_ix = {"B": 0, "I": 1, "O": 2, START_TAG: 3, STOP_TAG: 4}
     class_to_ix = {"test_class_1": 0, "test_class_2": 1}
 
-    model = BiLSTM_CRF_SLU(len(word_to_ix), tag_to_ix, class_to_ix, EMBEDDING_DIM, HIDDEN_DIM)
+    model = BiLSTM_CRF_SLU(len(word_to_ix), len(class_to_ix), tag_to_ix, EMBEDDING_DIM, HIDDEN_DIM)
 
     precheck_sent = prepare_sequence(training_data[0][0], word_to_ix)
 
@@ -111,7 +111,7 @@ def test_run_slu_model_train():
     tag_to_ix = {"B": 0, "I": 1, "O": 2, START_TAG: 3, STOP_TAG: 4}
     class_to_ix = {"test_class_1": 0, "test_class_2": 1}
 
-    model = BiLSTM_CRF_SLU(len(word_to_ix), tag_to_ix, class_to_ix, EMBEDDING_DIM, HIDDEN_DIM)
+    model = BiLSTM_CRF_SLU(len(word_to_ix), len(class_to_ix), tag_to_ix, EMBEDDING_DIM, HIDDEN_DIM)
 
     precheck_sent = prepare_sequence(training_data[0][0], word_to_ix)
     precheck_tag = prepare_sequence(training_data[0][1], tag_to_ix)

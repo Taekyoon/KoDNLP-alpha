@@ -1,8 +1,11 @@
+import logging
 import copy
 import json
 from typing import List
 from collections import Counter
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 
 class Vocabulary(object):

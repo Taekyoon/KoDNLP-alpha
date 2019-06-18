@@ -1,6 +1,6 @@
 import numpy as np
 
-from data.utils import pad_sequences
+from data.dataset import pad_sequences
 
 
 def test_pad_sequences_without_pad_val():

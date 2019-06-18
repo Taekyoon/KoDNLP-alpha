@@ -2,7 +2,7 @@ import torch
 from torch import nn
 
 from configs.constants import START_TAG, STOP_TAG
-from model.utils import log_sum_exp, argmax
+from model.operations import argmax, log_sum_exp
 
 
 class BiLSTM_CRF(nn.Module):
@@ -175,12 +175,11 @@ class BiLSTM_CRF(nn.Module):
 
 
 class BiLSTM_CRF_SLU(BiLSTM_CRF):
-    def __init__(self, vocab_size, tag_to_ix, class_to_ix, embedding_dim, hidden_dim, num_layers=1, dropout=0.5):
+    def __init__(self, vocab_size, class_size, tag_to_ix, embedding_dim, hidden_dim, num_layers=1, dropout=0.5):
         super(BiLSTM_CRF_SLU, self).__init__(vocab_size, tag_to_ix, embedding_dim, hidden_dim,
                                              num_layers=num_layers, dropout=dropout)
 
-        self.class_to_ix = class_to_ix
-        self.class_size = len(class_to_ix)
+        self.class_size = class_size
 
         self.hidden2class = nn.Linear(self.hidden_dim, self.class_size)
         self.ce_loss = nn.CrossEntropyLoss()

@@ -1,7 +1,9 @@
 {
   "type": "slu",
   "gpu_device": -1,
+  "tokenizer": "space_tokenizer",
   "dataset": {
+    "name": "snips",
     "train": {
       "vocab_min_freq": 5,
       "input": "./corpus/snips/train/seq.in",

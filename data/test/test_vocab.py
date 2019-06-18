@@ -54,3 +54,20 @@ def test_vocab_obj_as_json():
     dummy_vocab.from_json(json_path)
 
     assert vocab == dummy_vocab
+
+
+def test_vocab_obj_index_to_token():
+    dummy_inputs = [['나는', '한국에', '살고', '있어요'],
+                    ['한국에', '사는건', '쉽지', '않아요'],
+                    ['학교종이', '울리면', '모여야', '해요'],
+                    ['학교종이', '울리지', '않으면', '어디로', '가야', '하죠']]
+
+    example_tokens = dummy_inputs[0]
+
+    vocab = Vocabulary()
+    vocab.fit(dummy_inputs)
+
+    indices = vocab.to_indices(example_tokens)
+    target_tokens = vocab.to_tokens(indices)
+
+    assert example_tokens == target_tokens

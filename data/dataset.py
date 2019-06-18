@@ -6,8 +6,6 @@ import numpy as np
 from torch import Tensor
 from torch.utils.data import Dataset
 
-from data.utils import pad_sequences
-
 
 class NERDatasetFromJSONFile(Dataset):
     def __init__(self,
@@ -108,3 +106,23 @@ class SLUDatasetFromJSONFile(Dataset):
         sampled_instances['intents'] = Tensor(sampled_intents).long()
 
         return sampled_instances
+
+
+def pad_sequences(dataset, limit_len, pad_value=0):
+    if isinstance(dataset[0], list):
+        batch_size = len(dataset)
+    else:
+        batch_size = 1
+        dataset = [dataset]
+
+    padded_sequences = np.full((batch_size, limit_len), pad_value)
+
+    for i, inst in enumerate(dataset):
+        len_inst = len(inst)
+
+        if len_inst > limit_len:
+            padded_sequences[i, :] = np.array(inst[:limit_len])
+        elif len_inst <= limit_len:
+            padded_sequences[i, :len_inst] = np.array(inst[:len_inst])
+
+    return padded_sequences

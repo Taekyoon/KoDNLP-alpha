@@ -1,22 +1,61 @@
-import numpy as np
+from pathlib import Path
+
+from configs.constants import INPUT_VOCAB_FILENAME, TAG_VOCAB_FILENAME, CLASS_VOCAB_FILENAME
+from data.builder import NERDatasetBuilder, SLUDatasetBuilder
+from data.vocab import Vocabulary
 
 
-def pad_sequences(dataset, limit_len, pad_value=0):
-    if isinstance(dataset[0], list):
-        batch_size = len(dataset)
+def create_builder(type, dataset_configs, deploy_path='./tmp'):
+    if type == 'ner':
+        builder = NERDatasetBuilder(Path(dataset_configs['input']), Path(dataset_configs['label']),
+                                    dataset_dir=deploy_path)
+    elif type == 'slu':
+        builder = SLUDatasetBuilder(Path(dataset_configs['input']), Path(dataset_configs['slots']),
+                                    Path(dataset_configs['intents']), dataset_dir=deploy_path)
     else:
-        batch_size = 1
-        dataset = [dataset]
+        raise NotImplementedError()
 
-    padded_sequences = np.full((batch_size, limit_len), pad_value)
+    if 'vocab_min_freq' in dataset_configs:
+        builder.build_vocabulary(min_freq=dataset_configs['vocab_min_freq'])
+    else:
+        builder.build_vocabulary()
 
-    for i, inst in enumerate(dataset):
-        len_inst = len(inst)
+    builder.build_trainable_dataset()
 
-        if len_inst > limit_len:
-            padded_sequences[i, :] = np.array(inst[:limit_len])
-        elif len_inst <= limit_len:
-            padded_sequences[i, :len_inst] = np.array(inst[:len_inst])
+    return builder
 
-    return padded_sequences
 
+def load_vocab(type, load_path):
+    if type == 'ner':
+        input_vocab_path = load_path / 'dataset' / INPUT_VOCAB_FILENAME
+        label_vocab_path = load_path / 'dataset' / TAG_VOCAB_FILENAME
+
+        input_vocab = Vocabulary()
+        label_vocab = Vocabulary()
+
+        input_vocab.from_json(input_vocab_path)
+        label_vocab.from_json(label_vocab_path)
+
+        ret = {'input_vocab': input_vocab,
+               'label_vocab': label_vocab}
+
+    elif type == 'slu':
+        input_vocab_path = load_path / 'dataset' / INPUT_VOCAB_FILENAME
+        label_vocab_path = load_path / 'dataset' / TAG_VOCAB_FILENAME
+        class_vocab_path = load_path / 'dataset' / CLASS_VOCAB_FILENAME
+
+        input_vocab = Vocabulary()
+        label_vocab = Vocabulary()
+        class_vocab = Vocabulary()
+
+        input_vocab.from_json(input_vocab_path)
+        label_vocab.from_json(label_vocab_path)
+        class_vocab.from_json(class_vocab_path)
+
+        ret = {'input_vocab': input_vocab,
+               'label_vocab': label_vocab,
+               'class_vocab': class_vocab}
+    else:
+        raise ValueError()
+
+    return ret

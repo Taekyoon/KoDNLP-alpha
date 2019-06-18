@@ -1,23 +1,29 @@
-import torch
+from model.bilstm_crf import BiLSTM_CRF_SLU
+from model.sequence_tagger.bilstm_crf import BilstmCRF
 
 
-def argmax(vec):
-    # return the argmax as a python int
-    _, idx = torch.max(vec, -1)
+def create_crf_model(type, tag_to_idx, model_configs):
+    model_type = model_configs['type']
+    model_params = model_configs['parameters']
+    if type == 'ner':
+        vocab_size = model_configs['vocab_size']
+        if model_type == 'bilstm_crf':
+            model = BilstmCRF(vocab_size, tag_to_idx, model_params['word_embedding_dims'],
+                               model_params['hidden_dims'])
+        else:
+            raise ValueError()
+    elif type == 'slu':
+        vocab_size, class_size = model_configs['vocab_size'], model_configs['class_size']
 
-    return idx
+        num_layers = model_params['lstm_num_layers'] if 'lstm_num_layers' in model_params else 1
+        dropout = model_params['lstm_dropout'] if 'lstm_dropout' in model_params else 0.5
 
+        if model_type == 'bilstm_crf_slu':
+            model = BiLSTM_CRF_SLU(vocab_size, class_size, tag_to_idx, model_params['word_embedding_dims'], \
+                                   model_params['hidden_dims'], num_layers=num_layers, dropout=dropout)
+        else:
+            raise ValueError()
+    else:
+        raise ValueError()
 
-def prepare_sequence(seq, to_ix):
-    idxs = [to_ix[w] for w in seq]
-    return torch.tensor([idxs], dtype=torch.long)
-
-
-# Compute log sum exp in a numerically stable way for the forward algorithm
-def log_sum_exp(vec):
-    m = torch.max(vec, -1)[0]
-    return m + torch.log(torch.sum(torch.exp(vec - m.unsqueeze(-1)), -1))
-
-    # max_score = vec[0, argmax(vec)]
-    # max_score_broadcast = max_score.view(1, -1).expand(1, vec.size()[1])
-    # return max_score + torch.log(torch.sum(torch.exp(vec - max_score_broadcast)))
+    return model

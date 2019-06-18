@@ -2,11 +2,16 @@ from train.trainer import Trainer
 from configs.constants import RANDOM_SEED
 
 import torch
+from torch.utils.tensorboard import SummaryWriter
 import numpy as np
 from tqdm import tqdm
 from pathlib import Path
 
+import logging
+
 from train.metrics import f1, acc
+
+logger = logging.getLogger(__name__)
 
 
 class SLUModelTrainer(Trainer):
@@ -36,6 +41,7 @@ class SLUModelTrainer(Trainer):
 
         self._device = torch.device('cuda:' + str(gpu_device)) if torch.cuda.is_available() \
                                                                   and gpu_device >= 0 else torch.device('cpu')
+        self._tb_writer = SummaryWriter(self._deploy_path / 'logs')
 
         if self._device.type == 'cpu':
             torch.manual_seed(self._random_seed)
@@ -46,8 +52,17 @@ class SLUModelTrainer(Trainer):
         self.best_tag_val_f1_score = 0.
         self.best_class_val_acc_score = 0.
 
+        logger.info('deploy path: {}'.format(self._deploy_path))
+        logger.info('random seed number: {}'.format(self._random_seed))
+        logger.info('learning rate: {}'.format(self._learning_rate))
+        logger.info('evaluation check steps: {}'.format(self._eval_steps))
+        logger.info('number of epochs: {}'.format(self._epochs))
+        logger.info('training device: {}'.format(self._device.type))
+
     def _eval(self):
         score = 0.
+
+        logger.info('now evaluating...')
 
         self._model.eval()
 
@@ -83,6 +98,8 @@ class SLUModelTrainer(Trainer):
         steps_in_epoch = len(self._train_data_loader)
         total, tr_loss, tr_tag_loss, tr_class_loss = 0, 0., 0., 0.
 
+        logging.info('start training epoch {}'.format(epoch + 1))
+
         self._model.to(self._device)
         self._model.train()
 
@@ -106,7 +123,7 @@ class SLUModelTrainer(Trainer):
             tr_loss += loss
             self._backprop(loss, self._optimizer)
 
-            if total_steps % self._eval_steps == 0:
+            if self._eval_steps > 0 and total_steps % self._eval_steps == 0:
                 val_score, val_tag_f1, val_class_acc = self._eval()
 
                 if val_class_acc >= self.best_class_val_acc_score and val_tag_f1 >= self.best_tag_val_f1_score:
@@ -116,7 +133,7 @@ class SLUModelTrainer(Trainer):
                     self._save_model(self._model, self._deploy_path / 'best_val.pkl')
 
                 self._model.train()
-                tqdm.write(
+                logger.info(
                     'epoch : {}, steps : {}, tr_loss : {:.3f}, tr_tag_loss : {:.3f}, tr_class_loss : {:.3f}, '
                     'val_tag_f1 : {:.3f}, val_score : {:.3f}, val_class_acc : {:.3f}'.format(epoch + 1,
                                                                                              total_steps,
@@ -126,8 +143,37 @@ class SLUModelTrainer(Trainer):
                                                                                              val_tag_f1,
                                                                                              val_score,
                                                                                              val_class_acc))
+                self._tb_writer.add_scalar('train_loss', tr_loss / (step + 1), total_steps)
+                self._tb_writer.add_scalar('train_tag_loss', tr_tag_loss / (step + 1), total_steps)
+                self._tb_writer.add_scalar('train_class_loss', tr_class_loss / (step + 1), total_steps)
+
+                self._tb_writer.add_scalar('valid_tag_f1', val_tag_f1, total_steps)
+                self._tb_writer.add_scalar('valid_class_acc', val_class_acc, total_steps)
+
                 filename = 'checkpoint_' + str(total_steps) + '_model.pkl'
                 self._save_model(self._model, self._deploy_path / 'checkpoint' / filename)
 
         else:
+            logger.info('epoch {} is done!'.format(epoch + 1))
+            val_score, val_tag_f1, val_class_acc = self._eval()
+
+            if val_class_acc >= self.best_class_val_acc_score and val_tag_f1 >= self.best_tag_val_f1_score:
+                self.best_class_val_acc_score = val_class_acc
+                self.best_tag_val_f1_score = val_tag_f1
+
+                self._save_model(self._model, self._deploy_path / 'best_val.pkl')
+
+            logger.info(
+                'epoch : {}, steps : {}, tr_loss : {:.3f}, tr_tag_loss : {:.3f}, tr_class_loss : {:.3f}, '
+                'val_tag_f1 : {:.3f}, val_score : {:.3f}, val_class_acc : {:.3f}'.format(epoch + 1,
+                                                                                         total_steps,
+                                                                                         tr_loss / (step + 1),
+                                                                                         tr_tag_loss / (step + 1),
+                                                                                         tr_class_loss / (step + 1),
+                                                                                         val_tag_f1,
+                                                                                         val_score,
+                                                                                         val_class_acc))
+            logger.info('current best tag f1: {:.3f}'.format(self.best_tag_val_f1_score))
+            logger.info('current best class acc: {:.3f}'.format(self.best_class_val_acc_score))
+
             return tr_loss / (step + 1)

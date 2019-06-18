@@ -1,5 +1,6 @@
 from configs.constants import RANDOM_SEED
 
+import logging
 import torch
 import numpy as np
 from tqdm import tqdm
@@ -7,6 +8,8 @@ from pathlib import Path
 
 from train.trainer import Trainer
 from train.metrics import f1
+
+logger = logging.getLogger(__name__)
 
 
 class NERModelTrainer(Trainer):
@@ -17,7 +20,7 @@ class NERModelTrainer(Trainer):
                  epochs,
                  eval_steps,
                  deploy_path=Path('./tmp'),
-                 learning_rate=1e-4,
+                 learning_rate=3e-4,
                  optimizer=torch.optim.Adam,
                  metric_fn=None,
                  gpu_device=-1,
@@ -48,12 +51,21 @@ class NERModelTrainer(Trainer):
 
         self._metric_fn = metric_fn
 
+        logger.info('deploy path: {}'.format(self._deploy_path))
+        logger.info('random seed number: {}'.format(self._random_seed))
+        logger.info('learning rate: {}'.format(self._learning_rate))
+        logger.info('evaluation check steps: {}'.format(self._eval_steps))
+        logger.info('number of epochs: {}'.format(self._epochs))
+        logger.info('training device: {}'.format(self._device.type))
+
     def _eval(self):
         score, f1_score = 0., 0.
 
+        logger.info('now evaluating...')
+
         self._model.eval()
 
-        accumulated_preds, accumulated_targets = [], []
+        # accumulated_preds, accumulated_targets = [], []
 
         for step, sampled_batch in tqdm(enumerate(self._valid_data_loader), desc='valid steps',
                                         total=len(self._valid_data_loader)):
@@ -63,18 +75,22 @@ class NERModelTrainer(Trainer):
             target_batch = sampled_batch['entities'].view(batch_size, -1).to(self._device)
 
             pred_score, tag_seq = self._model(input_batch)
-            score += torch.mean(pred_score)
-            accumulated_preds.append(tag_seq.cpu().numpy())
-            accumulated_targets.append(target_batch.cpu().numpy())
+            score += pred_score.item()
+            f1_score += f1(tag_seq.detach().numpy(), target_batch.detach().numpy())
+            # accumulated_preds.append(tag_seq.cpu().detach().numpy())
+            # accumulated_targets.append(target_batch.cpu().detach().numpy())
         else:
             score = score / (step + 1)
-            f1_score = f1(np.concatenate(accumulated_preds, axis=None), np.concatenate(accumulated_targets, axis=None))
+            # f1_score = f1(np.concatenate(accumulated_preds, axis=None), np.concatenate(accumulated_targets, axis=None))
+            f1_score = f1_score / (step + 1)
 
         return score, f1_score
 
     def _train_epoch(self, epoch):
         steps_in_epoch = len(self._train_data_loader)
         total, tr_loss = 0, 0
+
+        logger.info('start training epoch {}'.format(epoch + 1))
 
         self._model.to(self._device)
         self._model.train()
@@ -87,11 +103,11 @@ class NERModelTrainer(Trainer):
             input_batch = sampled_batch['inputs']['value'].view(batch_size, -1).to(self._device)
             target_batch = sampled_batch['entities'].view(batch_size, -1).to(self._device)
 
-            loss = self._model.neg_log_likelihood(input_batch, target_batch)
+            loss = self._model.loss(input_batch, target_batch)
             tr_loss += loss
             self._backprop(loss, self._optimizer)
 
-            if total_steps % self._eval_steps == 0:
+            if self._eval_steps > 0 and total_steps % self._eval_steps == 0:
                 val_score, val_f1 = self._eval()
 
                 if val_f1 > self.best_val_f1_score:
@@ -100,13 +116,30 @@ class NERModelTrainer(Trainer):
                     self._save_model(self._model, self._deploy_path / 'best_val.pkl')
 
                 self._model.train()
-                tqdm.write(
+                logger.info(
                     'epoch : {}, steps : {}, tr_loss : {:.3f}, val_f1 : {:.3f}, val_score : {:.3f}'.format(epoch + 1,
                                                                                                            total_steps,
                                                                                                            tr_loss / (step + 1),
                                                                                                            val_f1,
-                                                                                                           val_score))
+                                                                                                           val_score.item()))
                 filename = 'checkpoint_' + str(total_steps) + '_model.pkl'
                 self._save_model(self._model, self._deploy_path / 'checkpoint' / filename)
         else:
+            logger.info('epoch {} is done!'.format(epoch + 1))
+            val_score, val_f1 = self._eval()
+
+            if val_f1 > self.best_val_f1_score:
+                self.best_val_f1_score = val_f1
+
+                self._save_model(self._model, self._deploy_path / 'best_val.pkl')
+
+            self._model.train()
+            logger.info(
+                'epoch : {}, steps : {}, tr_loss : {:.3f}, val_f1 : {:.3f}, val_score : {:.3f}'.format(epoch + 1,
+                                                                                                       total_steps,
+                                                                                                       tr_loss / (step + 1),
+                                                                                                       val_f1,
+                                                                                                       val_score.item()))
+            logger.info('current best tag f1: {:.3f}'.format(self.best_val_f1_score))
+
             return tr_loss / (step + 1)

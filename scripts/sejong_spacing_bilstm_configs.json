@@ -1,0 +1,32 @@
+{
+  "type": "ner",
+  "gpu_device": -1,
+  "dataset": {
+    "name": "sejong_spacing",
+    "train": {
+      "vocab_min_freq": 10,
+      "input": "./corpus/sejong_spacing/train/input.txt",
+      "label": "./corpus/sejong_spacing/train/label.txt"
+    },
+    "test": {
+      "input": "./corpus/sejong_spacing/test/input.txt",
+      "label": "./corpus/sejong_spacing/test/label.txt"
+    }
+  },
+  "deploy": {
+    "path": "./tmp/sejong_spacing_0"
+  },
+  "model": {
+    "type": "bilstm_crf",
+    "parameters": {
+      "word_embedding_dims": 32,
+      "hidden_dims": 64
+    }
+  },
+  "train": {
+    "epochs": 3,
+    "eval_steps": 1,
+    "batch_size": 128,
+    "sequence_length": 100
+  }
+}

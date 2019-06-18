@@ -1,3 +1,4 @@
+import logging
 from typing import List, Dict
 import json
 from pathlib import Path
@@ -11,6 +12,8 @@ from configs.constants import INPUT_VOCAB_FILENAME, TAG_VOCAB_FILENAME, CLASS_VO
 from data.vocab import Vocabulary
 from utils import make_dir_if_not_exist, get_filelines
 from data.dataset import NERDatasetFromJSONFile, SLUDatasetFromJSONFile
+
+logger = logging.getLogger(__name__)
 
 
 class DatasetBuilder(object):
@@ -42,6 +45,7 @@ class DatasetBuilder(object):
         return [s.split() for s in data]
 
     def _load_text(self, path: Path) -> List[str]:
+        logger.info('load text dataset: {}'.format(path))
         dataset = list()
         filelines = get_filelines(path)
 
@@ -64,6 +68,7 @@ class DatasetBuilder(object):
         return
 
     def _build_dataset_dir(self):
+        logger.info('build dataset directory...')
         make_dir_if_not_exist(self._dataset_dir)
 
 
@@ -100,7 +105,9 @@ class NERDatasetBuilder(DatasetBuilder):
         input_vocab_path = self._dataset_dir / INPUT_VOCAB_FILENAME
         label_vocab_path = self._dataset_dir / TAG_VOCAB_FILENAME
 
+        logger.info('build input text vocabulary...')
         self._input_vocab = Vocabulary(max_size=max_size, min_freq=min_freq, bos_token=None, eos_token=None)
+        logger.info('build label vocabulary...')
         self._label_vocab = Vocabulary(unknown_token=None)
 
         input_data = self._splitify(self._raw_input)
@@ -109,7 +116,9 @@ class NERDatasetBuilder(DatasetBuilder):
         self._input_vocab.fit(input_data)
         self._label_vocab.fit(label_data)
 
+        logger.info('save input text vocabulary...')
         self._input_vocab.to_json(input_vocab_path)
+        logger.info('save label vocabulary...')
         self._label_vocab.to_json(label_vocab_path)
 
         return
@@ -126,6 +135,7 @@ class NERDatasetBuilder(DatasetBuilder):
         valid_data = dict()
         valid_data_path = self._dataset_dir / VALIDATION_DATASET_FILENAME if valid_data_path is None else valid_data_path
 
+        logger.info('split train and valid dataset: test split rate is 0.1')
         train_raw_data, valid_raw_data = self._split_into_valid_and_train(self._raw_input, self._raw_label)
 
         train_data['inputs'] = self._numerize_from_text(train_raw_data[0], self._input_vocab)
@@ -134,6 +144,7 @@ class NERDatasetBuilder(DatasetBuilder):
         valid_data['inputs'] = self._numerize_from_text(valid_raw_data[0], self._input_vocab)
         valid_data['entities'] = self._numerize_from_text(valid_raw_data[1], self._label_vocab)
 
+        logger.info('save train and valid dataset as json format.')
         self._save_as_json(train_data, train_data_path)
         self._save_as_json(valid_data, valid_data_path)
 
@@ -142,7 +153,27 @@ class NERDatasetBuilder(DatasetBuilder):
 
         return
 
+    def build_instant_data_loader(self, input_path, label_path, data_path=None):
+        instant_data = dict()
+        data_path = self._dataset_dir / INSTANT_DATASET_FILENAME if data_path is None else data_path
+
+        input_data = self._load_text(input_path)
+        label_data = self._load_text(label_path)
+
+        instant_data['inputs'] = self._numerize_from_text(input_data, self._input_vocab)
+        instant_data['entities'] = self._numerize_from_text(label_data, self._label_vocab)
+
+        self._save_as_json(instant_data, data_path)
+
+        instant_dataset = NERDatasetFromJSONFile(data_path)
+
+        instant_data_loader = DataLoader(instant_dataset,
+                                         batch_size=1)
+
+        return instant_data_loader
+
     def build_data_loader(self, batch_size, limit_pad_len, enable_length=True):
+        logger.info('now get training dataloader object...')
         train_dataset = NERDatasetFromJSONFile(self._train_data_path[0],
                                                limit_pad_len=limit_pad_len,
                                                enable_length=enable_length)
@@ -207,8 +238,11 @@ class SLUDatasetBuilder(DatasetBuilder):
         label_vocab_path = self._dataset_dir / TAG_VOCAB_FILENAME
         class_vocab_path = self._dataset_dir / CLASS_VOCAB_FILENAME
 
+        logger.info('build input text vocabulary...')
         self._input_vocab = Vocabulary(max_size=max_size, min_freq=min_freq, bos_token=None, eos_token=None)
+        logger.info('build label vocabulary...')
         self._label_vocab = Vocabulary(unknown_token=None)
+        logger.info('build class vocabulary...')
         self._class_vocab = Vocabulary(unknown_token=None, padding_token=None, bos_token=None, eos_token=None)
 
         input_data = self._splitify(self._raw_input)
@@ -219,8 +253,11 @@ class SLUDatasetBuilder(DatasetBuilder):
         self._label_vocab.fit(label_data)
         self._class_vocab.fit(class_data)
 
+        logger.info('save input text vocabulary...')
         self._input_vocab.to_json(input_vocab_path)
+        logger.info('save label vocabulary...')
         self._label_vocab.to_json(label_vocab_path)
+        logger.info('save class vocabulary...')
         self._class_vocab.to_json(class_vocab_path)
 
         return
@@ -237,6 +274,7 @@ class SLUDatasetBuilder(DatasetBuilder):
         valid_data = dict()
         valid_data_save_path = self._dataset_dir / VALIDATION_DATASET_FILENAME if valid_data_save_path is None else valid_data_save_path
 
+        logger.info('split train and valid dataset: test split rate is 0.1')
         train_raw_data, valid_raw_data = self._split_into_valid_and_train(self._raw_input, self._raw_label,
                                                                           self._raw_class)
 
@@ -248,6 +286,7 @@ class SLUDatasetBuilder(DatasetBuilder):
         valid_data['slots'] = self._numerize_from_text(valid_raw_data[1], self._label_vocab)
         valid_data['intents'] = self._numerize_from_text(valid_raw_data[2], self._class_vocab)
 
+        logger.info('save train and valid dataset as json format.')
         self._save_as_json(train_data, train_data_save_path)
         self._save_as_json(valid_data, valid_data_save_path)
 
@@ -278,6 +317,7 @@ class SLUDatasetBuilder(DatasetBuilder):
         return instant_data_loader
 
     def build_data_loader(self, batch_size, limit_pad_len, enable_length=True):
+        logger.info('now get training dataloader object...')
         train_dataset = SLUDatasetFromJSONFile(self._train_data_path[0],
                                                limit_pad_len=limit_pad_len,
                                                enable_length=enable_length)
