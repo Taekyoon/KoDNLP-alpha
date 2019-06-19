@@ -33,7 +33,10 @@ class BilstmCRF(nn.Module):
     def forward(self, x: torch.Tensor) -> Tuple[torch.tensor, torch.tensor]:
         masking = x.ne(self._pad_idx).float()
         fmap = self._embedding(x)
+
         hiddens, last_hidden = self._bilstm(fmap, masking)
+        last_hidden = torch.cat([*last_hidden[0]], dim=1)
+
         emissions = self._fc(hiddens)
         class_outputs = self._fc_2(last_hidden)
         class_probs = nn.functional.softmax(class_outputs, dim=-1)
@@ -44,7 +47,10 @@ class BilstmCRF(nn.Module):
     def loss(self, x: torch.Tensor, y:torch.Tensor, c:torch.Tensor) -> torch.Tensor:
         masking = x.ne(self._pad_idx).float()
         fmap = self._embedding(x)
+
         hiddens, last_hidden = self._bilstm(fmap, masking)
+        last_hidden = torch.cat([*last_hidden[0]], dim=1)
+
         emissions = self._fc(hiddens)
         class_outputs = self._fc_2(last_hidden)
         class_loss = self._ce_loss(class_outputs, c.squeeze(-1))
