@@ -4,15 +4,9 @@ from flask import jsonify
 from flask import Flask
 from flask_cors import CORS
 
-import nltk
-
-from utils import load_configs, load_data_manager, load_keras_model, set_gpu_device
-from metrics import loss, precision, recall, f1score
-from dialogue_manager import manager
-
 import numpy as np
-import tensorflow as tf
-from tensorflow.python.keras.preprocessing.sequence import pad_sequences
+
+from utils import set_gpu_device
 
 set_gpu_device('-1')
 app = Flask(__name__)
@@ -23,17 +17,6 @@ model = None
 index2intent = None
 ner_tokenizer = None
 graph = None
-
-
-def preprocess(text, tokenizer):
-    tokenized_text = nltk.tokenize.WordPunctTokenizer().tokenize(text.lower())
-    input_text = ' '.join([t for t in tokenized_text if not t == "'"])
-
-    print(input_text)
-    sequences = tokenizer.texts_to_sequences([input_text])
-    sequences = pad_sequences(sequences, maxlen=40, padding='post', truncating='post')
-
-    return sequences
 
 
 def ner_postprocessing(ner_tags, text):

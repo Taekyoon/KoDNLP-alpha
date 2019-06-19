@@ -60,3 +60,8 @@ def set_logging_config(log_path):
         handlers=logging_handlers,
         level=logging_level,
     )
+
+
+def set_gpu_device(gpu_id: str):
+    # The GPU id to use, usually either "0" or "1"
+    os.environ["CUDA_VISIBLE_DEVICES"] = gpu_id
