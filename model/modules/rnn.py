@@ -5,7 +5,7 @@ from torch.nn.utils.rnn import pad_packed_sequence, pack_padded_sequence
 
 class BiLSTM(nn.Module):
     """BiLSTM class"""
-    def __init__(self, input_size: int, hidden_size: int) -> None:
+    def __init__(self, input_size: int, hidden_size: int, num_layers: int = 1, dropout: float = 0.) -> None:
         """Instantiating BiLSTM class
         Args:
             input_size (int): the number of expected features in the input x
@@ -13,7 +13,8 @@ class BiLSTM(nn.Module):
             using_sequence (bool): using all hidden states of sequence. Default: True
         """
         super(BiLSTM, self).__init__()
-        self._ops = nn.LSTM(input_size, hidden_size, batch_first=True, bidirectional=True)
+        self._ops = nn.LSTM(input_size, hidden_size, batch_first=True, bidirectional=True,
+                            num_layers=num_layers, dropout=dropout)
 
     def forward(self, x, mask) -> torch.Tensor:
         lens = mask.sum(dim=1)

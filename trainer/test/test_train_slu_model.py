@@ -1,7 +1,7 @@
 from pathlib import Path
-from data.builder import SLUDatasetBuilder
-from model.bilstm_crf import BiLSTM_CRF_SLU
-from train.train_slu_model import SLUModelTrainer
+from data_manager.builder import SLUDatasetBuilder
+from model.joint_classifier_and_sequence_tagger.bilstm_crf import BilstmCRF
+from trainer.slu_trainer import SLUModelTrainer
 
 
 def test_model_train_with_train_data():
@@ -27,7 +27,7 @@ def test_model_train_with_train_data():
 
     word_to_idx, tag_to_idx, class_to_idx = slu_builder.word_to_idx, slu_builder.tag_to_idx, slu_builder.class_to_idx
 
-    slu_model = BiLSTM_CRF_SLU(len(word_to_idx), tag_to_idx, class_to_idx, embedding_dim, hidden_dim)
+    slu_model = BilstmCRF(len(word_to_idx), len(class_to_idx), tag_to_idx, embedding_dim, hidden_dim)
 
     slu_trainer = SLUModelTrainer(train_data_loader,
                                   valid_data_loader,

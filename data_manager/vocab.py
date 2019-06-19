@@ -1,9 +1,11 @@
 import logging
 import copy
 import json
-from typing import List
+from typing import List, NewType
 from collections import Counter
 from pathlib import Path
+
+Vocabulary = NewType('Vocabulary', object)
 
 logger = logging.getLogger(__name__)
 
@@ -100,7 +102,7 @@ class Vocabulary(object):
 
         return
 
-    def from_json(self, json_path: Path) -> None:
+    def from_json(self, json_path: Path) -> Vocabulary:
         with open(json_path, 'r') as jsonfile:
             vocab_obj = json.load(jsonfile)
 
@@ -116,7 +118,7 @@ class Vocabulary(object):
         self._word_to_idx = vocab_obj['word_to_idx']
         self._idx_to_word = vocab_obj['idx_to_word']
 
-        return
+        return self
 
     @property
     def word_to_idx(self):

@@ -13,6 +13,8 @@ def parse_args():
                                      formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('-c', '--configs_path', dest='configs_path', type=str,
                         help='configureations file path')
+    parser.add_argument('-t', '--test', dest='test_only', type=bool, default=False,
+                        help='run only test')
     args = parser.parse_args()
 
     return args

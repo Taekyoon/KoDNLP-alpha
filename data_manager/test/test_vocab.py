@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from data.vocab import Vocabulary
+from data_manager.vocab import Vocabulary
 
 
 def test_create_vocabulary():

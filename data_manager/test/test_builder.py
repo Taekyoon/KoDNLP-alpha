@@ -1,5 +1,5 @@
 from pathlib import Path
-from data.builder import NERDatasetBuilder, SLUDatasetBuilder
+from data_manager.builder import NERDatasetBuilder, SLUDatasetBuilder
 from torch.utils.data import DataLoader
 
 

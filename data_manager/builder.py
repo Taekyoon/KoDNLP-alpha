@@ -1,3 +1,4 @@
+import os
 import logging
 from typing import List, Dict
 import json
@@ -9,9 +10,9 @@ from torch.utils.data import DataLoader
 from configs.constants import INPUT_VOCAB_FILENAME, TAG_VOCAB_FILENAME, CLASS_VOCAB_FILENAME, \
     TRAIN_DATASET_FILENAME, VALIDATION_DATASET_FILENAME, INSTANT_DATASET_FILENAME, RANDOM_SEED
 
-from data.vocab import Vocabulary
+from data_manager.vocab import Vocabulary
 from utils import make_dir_if_not_exist, get_filelines
-from data.dataset import NERDatasetFromJSONFile, SLUDatasetFromJSONFile
+from data_manager.dataset import NERDatasetFromJSONFile, SLUDatasetFromJSONFile
 
 logger = logging.getLogger(__name__)
 
@@ -80,6 +81,42 @@ class NERDatasetBuilder(DatasetBuilder):
                  input_vocab: Vocabulary = None,
                  label_vocab: Vocabulary = None,
                  dataset_dir: str = Path('./dataset/ner')):
+
+        self._dataset_dir = dataset_dir
+        self._has_resource = False
+
+        if os.path.isdir(self._dataset_dir):
+            try:
+                train_data_save_path = self._dataset_dir / TRAIN_DATASET_FILENAME
+                valid_data_save_path = self._dataset_dir / VALIDATION_DATASET_FILENAME
+
+                input_vocab_path = self._dataset_dir / INPUT_VOCAB_FILENAME
+                label_vocab_path = self._dataset_dir / TAG_VOCAB_FILENAME
+
+                if not os.path.exists(train_data_save_path):
+                    return False
+
+                if not os.path.exists(valid_data_save_path):
+                    return False
+
+                if not os.path.exists(input_vocab_path):
+                    return False
+
+                if not os.path.exists(label_vocab_path):
+                    return False
+
+                self._input_vocab = Vocabulary().from_json(input_vocab_path)
+                self._label_vocab = Vocabulary().from_json(label_vocab_path)
+
+                self._train_data_path = [train_data_save_path]
+                self._valid_data_path = [valid_data_save_path]
+
+                self._has_resource = True
+
+                return
+            except:
+                raise ValueError()
+
         self._input_path = input_path
         self._label_path = label_path
         self._file_type = file_type
@@ -93,7 +130,6 @@ class NERDatasetBuilder(DatasetBuilder):
         self._input_vocab = input_vocab
         self._label_vocab = label_vocab
 
-        self._dataset_dir = dataset_dir
         self._train_data_path = list()
         self._valid_data_path = list()
 
@@ -102,6 +138,9 @@ class NERDatasetBuilder(DatasetBuilder):
     def build_vocabulary(self,
                          max_size: int = None,
                          min_freq: int = 1) -> None:
+        if self._has_resource:
+            return
+
         input_vocab_path = self._dataset_dir / INPUT_VOCAB_FILENAME
         label_vocab_path = self._dataset_dir / TAG_VOCAB_FILENAME
 
@@ -126,6 +165,9 @@ class NERDatasetBuilder(DatasetBuilder):
     def build_trainable_dataset(self,
                                 train_data_path: str = None,
                                 valid_data_path: str = None) -> None:
+        if self._has_resource:
+            return
+
         if self._input_vocab is None or self._label_vocab is None:
             raise ValueError()
 
@@ -209,6 +251,46 @@ class SLUDatasetBuilder(DatasetBuilder):
                  label_vocab: Vocabulary = None,
                  class_vocab: Vocabulary = None,
                  dataset_dir: str = Path('./dataset/slu')):
+        self._dataset_dir = dataset_dir
+        self._has_resource = False
+
+        if os.path.isdir(self._dataset_dir):
+            try:
+                train_data_save_path = self._dataset_dir / TRAIN_DATASET_FILENAME
+                valid_data_save_path = self._dataset_dir / VALIDATION_DATASET_FILENAME
+
+                input_vocab_path = self._dataset_dir / INPUT_VOCAB_FILENAME
+                label_vocab_path = self._dataset_dir / TAG_VOCAB_FILENAME
+                class_vocab_path = self._dataset_dir / CLASS_VOCAB_FILENAME
+
+                if not os.path.exists(train_data_save_path):
+                    return False
+
+                if not os.path.exists(valid_data_save_path):
+                    return False
+
+                if not os.path.exists(input_vocab_path):
+                    return False
+
+                if not os.path.exists(label_vocab_path):
+                    return False
+
+                if not os.path.exists(class_vocab_path):
+                    return False
+
+                self._input_vocab = Vocabulary().from_json(input_vocab_path)
+                self._label_vocab = Vocabulary().from_json(label_vocab_path)
+                self._class_vocab = Vocabulary().from_json(class_vocab_path)
+
+                self._train_data_path = [train_data_save_path]
+                self._valid_data_path = [valid_data_save_path]
+
+                self._has_resource = True
+
+                return
+            except:
+                raise ValueError()
+
         self._input_path = input_path
         self._label_path = label_path
         self._class_path = class_path
@@ -225,7 +307,6 @@ class SLUDatasetBuilder(DatasetBuilder):
         self._label_vocab = label_vocab
         self._class_vocab = class_vocab
 
-        self._dataset_dir = dataset_dir
         self._train_data_path = list()
         self._valid_data_path = list()
 
@@ -234,6 +315,9 @@ class SLUDatasetBuilder(DatasetBuilder):
     def build_vocabulary(self,
                          max_size: int = None,
                          min_freq: int = 1) -> None:
+        if self._has_resource:
+            return
+
         input_vocab_path = self._dataset_dir / INPUT_VOCAB_FILENAME
         label_vocab_path = self._dataset_dir / TAG_VOCAB_FILENAME
         class_vocab_path = self._dataset_dir / CLASS_VOCAB_FILENAME
@@ -265,6 +349,9 @@ class SLUDatasetBuilder(DatasetBuilder):
     def build_trainable_dataset(self,
                                 train_data_save_path: str = None,
                                 valid_data_save_path: str = None) -> None:
+        if self._has_resource:
+            return
+
         if self._input_vocab is None or self._label_vocab is None:
             raise ValueError()
 

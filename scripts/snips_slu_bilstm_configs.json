@@ -20,7 +20,7 @@
     "path": "./tmp/slu_initial_test"
   },
   "model": {
-    "type": "bilstm_crf_slu",
+    "type": "bilstm_crf",
     "parameters": {
       "word_embedding_dims": 64,
       "hidden_dims": 128,

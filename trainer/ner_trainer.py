@@ -6,8 +6,8 @@ import numpy as np
 from tqdm import tqdm
 from pathlib import Path
 
-from train.trainer import Trainer
-from train.metrics import f1
+from trainer.trainer import Trainer
+from trainer.metrics import f1
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +65,7 @@ class NERModelTrainer(Trainer):
 
         self._model.eval()
 
-        # accumulated_preds, accumulated_targets = [], []
+        score_failure_cnt = 0
 
         for step, sampled_batch in tqdm(enumerate(self._valid_data_loader), desc='valid steps',
                                         total=len(self._valid_data_loader)):
@@ -76,13 +76,14 @@ class NERModelTrainer(Trainer):
 
             pred_score, tag_seq = self._model(input_batch)
             score += pred_score.item()
-            f1_score += f1(tag_seq.detach().numpy(), target_batch.detach().numpy())
-            # accumulated_preds.append(tag_seq.cpu().detach().numpy())
-            # accumulated_targets.append(target_batch.cpu().detach().numpy())
+            try:
+                f1_score += f1(tag_seq.detach().numpy(), target_batch.detach().numpy())
+            except:
+                score_failure_cnt += 1
+                logger.info('f1 score failure {} times'.format(score_failure_cnt))
         else:
             score = score / (step + 1)
-            # f1_score = f1(np.concatenate(accumulated_preds, axis=None), np.concatenate(accumulated_targets, axis=None))
-            f1_score = f1_score / (step + 1)
+            f1_score = f1_score / (step + 1 - score_failure_cnt)
 
         return score, f1_score
 
@@ -121,7 +122,7 @@ class NERModelTrainer(Trainer):
                                                                                                            total_steps,
                                                                                                            tr_loss / (step + 1),
                                                                                                            val_f1,
-                                                                                                           val_score.item()))
+                                                                                                           val_score))
                 filename = 'checkpoint_' + str(total_steps) + '_model.pkl'
                 self._save_model(self._model, self._deploy_path / 'checkpoint' / filename)
         else:
@@ -139,7 +140,7 @@ class NERModelTrainer(Trainer):
                                                                                                        total_steps,
                                                                                                        tr_loss / (step + 1),
                                                                                                        val_f1,
-                                                                                                       val_score.item()))
+                                                                                                       val_score))
             logger.info('current best tag f1: {:.3f}'.format(self.best_val_f1_score))
 
             return tr_loss / (step + 1)

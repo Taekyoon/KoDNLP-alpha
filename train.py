@@ -2,15 +2,15 @@ import logging
 from pathlib import Path
 
 from utils import parse_args, load_json, load_model, set_logging_config
-from data.utils import create_builder
+from data_manager.utils import create_builder
 from model.utils import create_crf_model
-from train.utils import create_trainer
-from eval.utils import create_evaluator
+from trainer.utils import create_trainer
+from evaluator.utils import create_evaluator
 
 logger = logging.getLogger(__name__)
 
 
-def main(configs):
+def main(configs, test_only):
     task_type = configs['type']
     train_dataset_configs = configs['dataset']['train']
     test_dataset_configs = configs['dataset']['test'] if 'test' in configs['dataset'] else None
@@ -32,12 +32,13 @@ def main(configs):
     if data_builder.tag_to_idx:
         tag_to_idx = data_builder.tag_to_idx
 
-    model = create_crf_model(task_type, tag_to_idx, model_configs)
-    trainer = create_trainer(task_type, model, data_builder, train_configs,
-                             gpu_device=gpu_device, deploy_path=deploy_path / 'model')
+    if not test_only:
+        model = create_crf_model(task_type, tag_to_idx, model_configs)
+        trainer = create_trainer(task_type, model, data_builder, train_configs,
+                                 gpu_device=gpu_device, deploy_path=deploy_path / 'model')
 
-    logger.info(model)
-    trainer.train()
+        logger.info(model)
+        trainer.train()
 
     if test_dataset_configs is not None:
         best_model_path = deploy_path / 'model' / 'best_val.pkl'
@@ -52,4 +53,5 @@ def main(configs):
 if __name__ == '__main__':
     args = parse_args()
     configs = load_json(args.configs_path)
-    main(configs)
+    test_only = args.test_only
+    main(configs, test_only)

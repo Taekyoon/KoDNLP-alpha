@@ -1,3 +1,4 @@
+## This code file will be deprecated
 import torch
 
 from model.bilstm_crf import BiLSTM_CRF, BiLSTM_CRF_SLU

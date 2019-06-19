@@ -1,8 +1,8 @@
 from pathlib import Path
 
 from configs.constants import INPUT_VOCAB_FILENAME, TAG_VOCAB_FILENAME, CLASS_VOCAB_FILENAME
-from data.builder import NERDatasetBuilder, SLUDatasetBuilder
-from data.vocab import Vocabulary
+from data_manager.builder import NERDatasetBuilder, SLUDatasetBuilder
+from data_manager.vocab import Vocabulary
 
 
 def create_builder(type, dataset_configs, deploy_path='./tmp'):

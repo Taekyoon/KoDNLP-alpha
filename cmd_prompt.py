@@ -4,57 +4,19 @@ from pathlib import Path
 import logging
 from prettytable import PrettyTable
 
-from data.utils import load_vocab
-from data.bert_tokenization.utils import create_bert_tokenizer
+from data_manager.utils import load_vocab
+from data_manager.bert_tokenization.utils import create_bert_tokenizer
 from model.utils import create_crf_model
+from run_utils import ner_postprocessing
 
 from utils import parse_args, load_json, load_model
 
 logger = logging.getLogger(__name__)
 
 
-def ner_postprocessing(ner_tags, text):
-    tag_stack = []
-    entity_stack = []
-
-    entities = []
-    entity_tags = []
-
-    for n, t in zip(ner_tags, text):
-        if not (n == 'O' or n == '<pad>'):
-            state, tag = n.split('-')
-            if state == 'B':
-                if len(entity_stack) > 0:
-                    entities.append(' '.join(entity_stack))
-                    entity_tags.append(tag_stack[0])
-                    entity_stack = []
-                    tag_stack = []
-
-                entity_stack.append(t)
-                tag_stack.append(tag)
-
-            elif state == 'I':
-                if len(entity_stack) > 0:
-                    entity_stack.append(t)
-                    tag_stack.append(tag)
-
-        else:
-            if len(entity_stack) > 0:
-                entities.append(' '.join(entity_stack))
-                entity_tags.append(tag_stack[0])
-                entity_stack = []
-                tag_stack = []
-
-    if len(entity_stack) > 0:
-        entities.append(' '.join(entity_stack))
-        entity_tags.append(tag_stack[0])
-
-    return entity_tags, entities
-
-
 def main(configs):
     task_type = configs['type']
-    tokenizer_type = configs['tokenizer']
+    tokenizer_type = configs['tokenizer'] if 'tokenizer' in configs else ''
     deploy_path = Path(configs['deploy']['path'])
     model_configs = configs['model']
     best_model_path = deploy_path / 'model' / 'best_val.pkl'
@@ -99,21 +61,24 @@ def main(configs):
             intent = vocabs['class_vocab'].to_tokens(torch.argmax(class_prob, dim=-1).tolist())[0]
 
             slot_tags, slots = ner_postprocessing(labeled_tag_seq, tokens)
-            print(class_prob)
-            print(pred_score.item() / len(model_inputs[0]))
-            print(tokens)
-            print(model_inputs)
-            print(labeled_tag_seq)
 
             slot_table = PrettyTable(['Slot', 'Type'])
 
             for s, t in zip(slots, slot_tags):
-                slot_table.add_row([s.replace(' ', ''), t])
+                entity = s
+                if tokenizer_type == 'syllable_tokenizer':
+                    entity = s.replace(' ', '')
+                elif tokenizer_type == 'bert_tokenizer':
+                    entity = s.replace(' ', '')
+                    if entity[-1] == '_':
+                        entity = entity[:-1]
+
+                slot_table.add_row([entity, t])
 
             print('*' * 5, 'Intents', '*' * 5)
-            print(intent)
-            print()
+            print(intent, class_prob.tolist()[0][torch.argmax(class_prob, dim=-1).tolist()[0]])
             print('*' * 5, 'Slots', '*' * 5)
+            print(pred_score.item() / len(model_inputs[0]))
             print(slot_table)
         else:
             raise NotImplementedError()

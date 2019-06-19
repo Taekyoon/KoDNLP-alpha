@@ -1,7 +1,7 @@
 from pathlib import Path
-from data.builder import NERDatasetBuilder
-from model.bilstm_crf import BiLSTM_CRF
-from train.train_ner_model import NERModelTrainer
+from data_manager.builder import NERDatasetBuilder
+from model.sequence_tagger.bilstm_crf import BilstmCRF
+from trainer.ner_trainer import NERModelTrainer
 
 
 def test_model_train_with_train_data():
@@ -26,7 +26,7 @@ def test_model_train_with_train_data():
 
     word_to_idx, tag_to_idx = ner_builder.word_to_idx, ner_builder.tag_to_idx
 
-    ner_model = BiLSTM_CRF(len(word_to_idx), tag_to_idx, embedding_dim, hidden_dim)
+    ner_model = BilstmCRF(len(word_to_idx), tag_to_idx, embedding_dim, hidden_dim)
 
     ner_trainer = NERModelTrainer(train_data_loader,
                                   valid_data_loader,

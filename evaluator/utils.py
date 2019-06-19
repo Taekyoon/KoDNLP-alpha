@@ -1,5 +1,5 @@
-from eval.eval_slu_model import SLUModelEvaluator
-from eval.eval_ner_model import NERModelEvaluator
+from evaluator.eval_slu_model import SLUModelEvaluator
+from evaluator.eval_ner_model import NERModelEvaluator
 
 
 def create_evaluator(type, model, data_builder, dataset_configs):

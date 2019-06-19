@@ -25,7 +25,7 @@
   },
   "train": {
     "epochs": 3,
-    "eval_steps": 1,
+    "eval_steps": -1,
     "batch_size": 128,
     "sequence_length": 100
   }

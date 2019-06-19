@@ -1,5 +1,5 @@
-from train.train_ner_model import NERModelTrainer
-from train.train_slu_model import SLUModelTrainer
+from trainer.ner_trainer import NERModelTrainer
+from trainer.slu_trainer import SLUModelTrainer
 
 
 def create_trainer(type, model, data_builder, train_configs, gpu_device=-1, deploy_path='./tmp'):

@@ -5,7 +5,7 @@ from tqdm import tqdm
 import logging
 from prettytable import PrettyTable
 
-from train.metrics import f1
+from trainer.metrics import f1
 
 logger = logging.getLogger(__name__)
 

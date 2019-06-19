@@ -1,4 +1,4 @@
-from data.tokenizer import EumjeolTokenizer, KomoranTokenizer, MecabTokenizer
+from data_manager.tokenizer import EumjeolTokenizer, KomoranTokenizer, MecabTokenizer
 
 
 def test_eunjeol_tokenizer():

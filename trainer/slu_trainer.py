@@ -1,4 +1,4 @@
-from train.trainer import Trainer
+from trainer.trainer import Trainer
 from configs.constants import RANDOM_SEED
 
 import torch
@@ -9,7 +9,7 @@ from pathlib import Path
 
 import logging
 
-from train.metrics import f1, acc
+from trainer.metrics import f1, acc
 
 logger = logging.getLogger(__name__)
 
@@ -111,10 +111,8 @@ class SLUModelTrainer(Trainer):
             input_batch = sampled_batch['inputs']['value'].view(batch_size, -1).to(self._device)
             target_batch = sampled_batch['slots'].view(batch_size, -1).to(self._device)
             class_batch = sampled_batch['intents'].to(self._device)
-            input_len_batch = sampled_batch['inputs']['length'].view(batch_size)
 
-            tag_loss, class_loss = self._model.neg_log_likelihood(input_batch, target_batch, class_batch,
-                                                                  input_len_batch)
+            tag_loss, class_loss = self._model.loss(input_batch, target_batch, class_batch)
 
             tr_tag_loss += tag_loss
             tr_class_loss += class_loss
