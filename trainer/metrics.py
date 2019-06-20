@@ -10,12 +10,9 @@ def f1(pred, target, labels=None):
         target = target.flatten()
 
     if len(pred) != len(target):
-        print()
-        print()
-        print(len(pred), len(target))
-        print(pred)
-        print(target)
-        raise ValueError()
+        raise ValueError(
+            'both predict and target length is not the same predict is {} and target is {}'.format(len(pred),
+                                                                                                   len(target)))
 
     return f1_score(target, pred, labels=labels, average='weighted')
 
@@ -27,8 +24,8 @@ def acc(pred, target):
         target = target.flatten()
 
     if len(pred) != len(target):
-        print(len(pred), len(target))
-        print(pred, target)
-        raise ValueError()
+        raise ValueError(
+            'both predict and target length is not the same predict is {} and target is {}'.format(len(pred),
+                                                                                                   len(target)))
 
     return accuracy_score(target, pred)

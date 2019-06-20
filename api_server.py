@@ -1,131 +1,99 @@
-from fire import Fire
+from pathlib import Path
+
+import torch
 
 from flask import jsonify
 from flask import Flask
 from flask_cors import CORS
 
-import numpy as np
-
-from utils import set_gpu_device
+from data_manager.bert_tokenization.utils import create_bert_tokenizer
+from data_manager.utils import load_vocab
+from model.utils import create_crf_model
+from postpro.ner import process_by_ner
+from utils import set_gpu_device, parse_args, load_json, load_model
 
 set_gpu_device('-1')
 app = Flask(__name__)
 CORS(app)
 
-tokenizer = None
+tokenizer_type = None
+task_type = None
 model = None
-index2intent = None
-ner_tokenizer = None
-graph = None
-
-
-def ner_postprocessing(ner_tags, text):
-    tag_stack = []
-    entity_stack = []
-
-    entities = []
-    entity_tags = []
-
-    tokenized_text = nltk.tokenize.WordPunctTokenizer().tokenize(text)
-    text_for_ner = [t for t in tokenized_text if not t == "'"]
-
-    for n, t in zip(ner_tags, text_for_ner):
-        if not (n == 'o' or n == 'p'):
-            state, tag = n.split('-')
-            if state == 'b':
-                if len(entity_stack) > 0:
-                    entities.append(' '.join(entity_stack))
-                    entity_tags.append(tag_stack[0])
-                    entity_stack = []
-                    tag_stack = []
-
-                entity_stack.append(t)
-                tag_stack.append(tag)
-
-            elif state == 'i':
-                entity_stack.append(t)
-                tag_stack.append(tag)
-
-        else:
-            if len(entity_stack) > 0:
-                entities.append(' '.join(entity_stack))
-                entity_tags.append(tag_stack[0])
-                entity_stack = []
-                tag_stack = []
-
-    if len(entity_stack) > 0:
-        entities.append(' '.join(entity_stack))
-        entity_tags.append(tag_stack[0])
-
-    return entity_tags, entities
-
-
-def model_process(text, tokenizer, index2intent, ner_tokenizer, model):
-    input_seqs = preprocess(text, tokenizer)
-    output_seqs = model.predict(input_seqs)
-    pred_seqs = np.argmax(output_seqs[1][:, :, :], axis=-1)
-    intent_confidence = round(float(max(output_seqs[0][0])), 3)
-    intent_name = index2intent[np.argmax(output_seqs[0], axis=-1)[0]]
-    ner_tags = [ner_tokenizer.index_word[s] for s in pred_seqs[0]]
-
-    entity_tags, entities = ner_postprocessing(ner_tags, text)
-
-    intent = {'intent_name': intent_name, 'confidence': intent_confidence}
-    slots = [{'entity': tag, 'value': entity} for tag, entity in zip(entity_tags, entities)]
-
-    json_item = {'intent': intent, 'slots': slots}
-
-    return json_item
+vocabs = None
+bert_tokenizer = None
 
 
 @app.route('/text_request/<query>')
 def text_request(query):
-    text = query
+    input_text = query
 
-    with graph.as_default():
-        query_analyze_response = model_process(text, tokenizer, index2intent, ner_tokenizer, model)
+    if task_type == 'slu':
+        if tokenizer_type == 'syllable_tokenizer':
+            tokens = [ch for ch in input_text.replace(' ', '$')]
+        elif tokenizer_type == 'bert_tokenizer':
+            tokenizer = create_bert_tokenizer()
+            tokens = tokenizer.tokenize(input_text)
+        elif tokenizer_type == 'space_tokenizer':
+            tokens = input_text.split()
 
-    text_response = manager.run(query_analyze_response)
+        model_inputs = vocabs['input_vocab'].to_indices(tokens)
 
-    response = {'query_text': text,
-                'query_analysis': query_analyze_response,
-                'text_response': text_response}
+        model_inputs = torch.Tensor([model_inputs]).long()
+        pred_score, tag_seq, class_prob = model(model_inputs)
 
-    return jsonify(response)
+        labeled_tag_seq = vocabs['label_vocab'].to_tokens(tag_seq[0].tolist())
+
+        intent = vocabs['class_vocab'].to_tokens(torch.argmax(class_prob, dim=-1).tolist())[0]
+        intent_prob = class_prob.tolist()[0][torch.argmax(class_prob, dim=-1).tolist()[0]]
+
+        slot_tags, slots = process_by_ner(tokens, labeled_tag_seq)
+
+        intent = {'intent': intent, 'prob': intent_prob}
+        entities = [{'entity': tag, 'value': entity} for tag, entity in zip(slot_tags, slots)]
+
+        json_item = {'intent': intent, 'slots': entities}
+    else:
+        raise NotImplementedError()
+
+    return jsonify(json_item)
 
 
-def main(configs_path: str = './scripts/version_0_0_2_1_configs.json'):
-    _configs = load_configs(configs_path)
+def main(configs):
 
-    _model_path = _configs['deployment']['dir_path'] + _configs['deployment']['model_path']
-    _data_manager_path = _configs['deployment']['dir_path'] + _configs['deployment']['data_manager_path']
-
-    _custom_objects = {'loss': loss,
-                       'precision': precision,
-                       'recall': recall,
-                       'f1score': f1score}
-
-    data_manager = load_data_manager(_data_manager_path)
-
-    global tokenizer
+    global tokenizer_type
+    global task_type
     global model
-    global index2intent
-    global ner_tokenizer
-    global graph
+    global vocabs
+    global bert_tokenizer
 
-    graph = tf.get_default_graph()
+    task_type = configs['type']
+    tokenizer_type = configs['tokenizer'] if 'tokenizer' in configs else ''
+    deploy_path = Path(configs['deploy']['path'])
+    model_configs = configs['model']
+    best_model_path = deploy_path / 'model' / 'best_val.pkl'
 
-    tokenizer = data_manager.get_tokenizer()
-    ner_tokenizer = data_manager._ner_tokenizer
-    ner_tokenizer.index_word[0] = 'p'
+    vocabs = load_vocab(task_type, deploy_path)
 
-    index2intent = data_manager._index_intent
+    if 'input_vocab' in vocabs:
+        model_configs['vocab_size'] = len(vocabs['input_vocab'].word_to_idx)
 
-    with graph.as_default():
-        model = load_keras_model(_model_path, _custom_objects)
+    if 'class_vocab' in vocabs:
+        model_configs['class_size'] = len(vocabs['class_vocab'].word_to_idx)
+
+    if 'label_vocab' in vocabs:
+        tag_vocab = vocabs['label_vocab']
+
+    model = create_crf_model(task_type, tag_vocab, model_configs)
+    model = load_model(best_model_path, model)
+    model.eval()
+
+    if tokenizer_type == 'bert_tokenizer':
+        bert_tokenizer = create_bert_tokenizer()
 
     app.run(host='0.0.0.0', port=10010, debug=True)
 
 
 if __name__ == '__main__':
-    Fire(main)
+    args = parse_args()
+    configs = load_json(args.configs_path)
+    main(configs)

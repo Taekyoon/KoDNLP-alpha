@@ -5,7 +5,7 @@ from model.joint_classifier_and_sequence_tagger.bilstm_crf import BilstmCRF as B
 def create_crf_model(type, tag_to_idx, model_configs):
     model_type = model_configs['type']
     model_params = model_configs['parameters']
-    if type == 'ner':
+    if type == 'ner' or type == 'word_segment':
         vocab_size = model_configs['vocab_size']
         if model_type == 'bilstm_crf':
             model = BilstmCRF(vocab_size, tag_to_idx, model_params['word_embedding_dims'],

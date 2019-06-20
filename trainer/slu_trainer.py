@@ -25,7 +25,8 @@ class SLUModelTrainer(Trainer):
                  learning_rate=3e-4,
                  optimizer=torch.optim.Adam,
                  gpu_device=-1,
-                 random_seed=RANDOM_SEED):
+                 random_seed=RANDOM_SEED,
+                 eval_labels=None):
 
         self._epochs = epochs
         self._eval_steps = eval_steps
@@ -52,12 +53,15 @@ class SLUModelTrainer(Trainer):
         self.best_tag_val_f1_score = 0.
         self.best_class_val_acc_score = 0.
 
+        self._eval_labels = eval_labels
+
         logger.info('deploy path: {}'.format(self._deploy_path))
         logger.info('random seed number: {}'.format(self._random_seed))
         logger.info('learning rate: {}'.format(self._learning_rate))
         logger.info('evaluation check steps: {}'.format(self._eval_steps))
         logger.info('number of epochs: {}'.format(self._epochs))
         logger.info('training device: {}'.format(self._device.type))
+        logger.info('eval labels: {}'.format(self._eval_labels))
 
     def _eval(self):
         score = 0.
@@ -88,7 +92,7 @@ class SLUModelTrainer(Trainer):
         else:
             score = score / (step + 1)
             tag_f1_score = f1(np.concatenate(accumulated_tag_preds, axis=None),
-                              np.concatenate(accumulated_tag_targets, axis=None))
+                              np.concatenate(accumulated_tag_targets, axis=None), labels=self._eval_labels)
             class_acc_score = acc(np.concatenate(accumulated_class_preds, axis=None),
                                   np.concatenate(accumulated_class_targets, axis=None))
 

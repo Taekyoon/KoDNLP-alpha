@@ -5,6 +5,8 @@ from typing import List, NewType
 from collections import Counter
 from pathlib import Path
 
+from configs.constants import PAD, UNK, START_TAG, STOP_TAG
+
 Vocabulary = NewType('Vocabulary', object)
 
 logger = logging.getLogger(__name__)
@@ -14,10 +16,10 @@ class Vocabulary(object):
     def __init__(self,
                  max_size=None,
                  min_freq=1,
-                 unknown_token='<unk>',
-                 padding_token='<pad>',
-                 bos_token='<bos>',
-                 eos_token='<eos>',
+                 unknown_token=UNK,
+                 padding_token=PAD,
+                 bos_token=START_TAG,
+                 eos_token=STOP_TAG,
                  reserved_tokens=None):
 
         self.max_size = max_size

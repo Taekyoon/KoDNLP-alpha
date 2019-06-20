@@ -11,8 +11,11 @@ from configs.constants import INPUT_VOCAB_FILENAME, TAG_VOCAB_FILENAME, CLASS_VO
     TRAIN_DATASET_FILENAME, VALIDATION_DATASET_FILENAME, INSTANT_DATASET_FILENAME, RANDOM_SEED
 
 from data_manager.vocab import Vocabulary
-from utils import make_dir_if_not_exist, get_filelines
-from data_manager.dataset import NERDatasetFromJSONFile, SLUDatasetFromJSONFile
+from data_manager.dataset import SequenceTagDatasetFromJSONFile, JointClsNTagDatasetFromJSONFile
+
+from utils import make_dir_if_not_exist, get_filelines, load_text
+
+from prepro.word_segment import labelize, remove_multiple_spaces
 
 logger = logging.getLogger(__name__)
 
@@ -27,12 +30,20 @@ class DatasetBuilder(object):
         return self._label_vocab
 
     @property
+    def class_vocab(self):
+        return self._class_vocab
+
+    @property
     def word_to_idx(self):
         return self._input_vocab.word_to_idx
 
     @property
     def tag_to_idx(self):
         return self._label_vocab.word_to_idx
+
+    @property
+    def class_to_idx(self):
+        return self._class_vocab.word_to_idx
 
     def _split_into_valid_and_train(self, input, label, test_size=0.1, random_state=RANDOM_SEED):
         raise NotImplementedError()
@@ -47,20 +58,7 @@ class DatasetBuilder(object):
 
     def _load_text(self, path: Path) -> List[str]:
         logger.info('load text dataset: {}'.format(path))
-        dataset = list()
-        filelines = get_filelines(path)
-
-        with open(path, 'r') as textfile:
-            for i in range(filelines):
-                textline = ''
-                try:
-                    textline = textfile.readline().rstrip().replace('\n', '')
-                except ValueError() as e:
-                    pass
-
-                dataset.append(textline)
-
-        return dataset
+        return load_text(path)
 
     def _save_as_json(self, obj: Dict, json_path: str) -> None:
         with open(json_path, 'w') as jsonfile:
@@ -94,16 +92,16 @@ class NERDatasetBuilder(DatasetBuilder):
                 label_vocab_path = self._dataset_dir / TAG_VOCAB_FILENAME
 
                 if not os.path.exists(train_data_save_path):
-                    return False
+                    raise FileNotFoundError()
 
                 if not os.path.exists(valid_data_save_path):
-                    return False
+                    raise FileNotFoundError()
 
                 if not os.path.exists(input_vocab_path):
-                    return False
+                    raise FileNotFoundError()
 
                 if not os.path.exists(label_vocab_path):
-                    return False
+                    raise FileNotFoundError()
 
                 self._input_vocab = Vocabulary().from_json(input_vocab_path)
                 self._label_vocab = Vocabulary().from_json(label_vocab_path)
@@ -207,20 +205,24 @@ class NERDatasetBuilder(DatasetBuilder):
 
         self._save_as_json(instant_data, data_path)
 
-        instant_dataset = NERDatasetFromJSONFile(data_path)
+        instant_dataset = SequenceTagDatasetFromJSONFile(data_path)
 
         instant_data_loader = DataLoader(instant_dataset,
                                          batch_size=1)
 
         return instant_data_loader
 
-    def build_data_loader(self, batch_size, limit_pad_len, enable_length=True):
+    def build_data_loader(self, batch_size, limit_pad_len, valid_batch_size=1, enable_length=True):
         logger.info('now get training dataloader object...')
-        train_dataset = NERDatasetFromJSONFile(self._train_data_path[0],
-                                               limit_pad_len=limit_pad_len,
-                                               enable_length=enable_length)
+        train_dataset = SequenceTagDatasetFromJSONFile(self._train_data_path[0],
+                                                       limit_pad_len=limit_pad_len,
+                                                       enable_length=enable_length)
 
-        valid_dataset = NERDatasetFromJSONFile(self._valid_data_path[0])
+        if valid_batch_size <= 1:
+            limit_pad_len = None
+
+        valid_dataset = SequenceTagDatasetFromJSONFile(self._valid_data_path[0],
+                                                       limit_pad_len=limit_pad_len)
 
         train_data_loader = DataLoader(train_dataset,
                                        batch_size=batch_size,
@@ -229,7 +231,8 @@ class NERDatasetBuilder(DatasetBuilder):
                                        drop_last=True)
 
         valid_data_loader = DataLoader(valid_dataset,
-                                       batch_size=1)
+                                       batch_size=valid_batch_size,
+                                       num_workers=4)
 
         return train_data_loader, valid_data_loader
 
@@ -264,19 +267,19 @@ class SLUDatasetBuilder(DatasetBuilder):
                 class_vocab_path = self._dataset_dir / CLASS_VOCAB_FILENAME
 
                 if not os.path.exists(train_data_save_path):
-                    return False
+                    raise FileNotFoundError()
 
                 if not os.path.exists(valid_data_save_path):
-                    return False
+                    raise FileNotFoundError()
 
                 if not os.path.exists(input_vocab_path):
-                    return False
+                    raise FileNotFoundError()
 
                 if not os.path.exists(label_vocab_path):
-                    return False
+                    raise FileNotFoundError()
 
                 if not os.path.exists(class_vocab_path):
-                    return False
+                    raise FileNotFoundError()
 
                 self._input_vocab = Vocabulary().from_json(input_vocab_path)
                 self._label_vocab = Vocabulary().from_json(label_vocab_path)
@@ -396,7 +399,7 @@ class SLUDatasetBuilder(DatasetBuilder):
 
         self._save_as_json(instant_data, data_path)
 
-        instant_dataset = SLUDatasetFromJSONFile(data_path)
+        instant_dataset = JointClsNTagDatasetFromJSONFile(data_path)
 
         instant_data_loader = DataLoader(instant_dataset,
                                          batch_size=1)
@@ -405,11 +408,11 @@ class SLUDatasetBuilder(DatasetBuilder):
 
     def build_data_loader(self, batch_size, limit_pad_len, enable_length=True):
         logger.info('now get training dataloader object...')
-        train_dataset = SLUDatasetFromJSONFile(self._train_data_path[0],
-                                               limit_pad_len=limit_pad_len,
-                                               enable_length=enable_length)
+        train_dataset = JointClsNTagDatasetFromJSONFile(self._train_data_path[0],
+                                                        limit_pad_len=limit_pad_len,
+                                                        enable_length=enable_length)
 
-        valid_dataset = SLUDatasetFromJSONFile(self._valid_data_path[0])
+        valid_dataset = JointClsNTagDatasetFromJSONFile(self._valid_data_path[0])
 
         train_data_loader = DataLoader(train_dataset,
                                        batch_size=batch_size,
@@ -422,13 +425,89 @@ class SLUDatasetBuilder(DatasetBuilder):
 
         return train_data_loader, valid_data_loader
 
-    @property
-    def class_to_idx(self):
-        return self._class_vocab.word_to_idx
-
     def _split_into_valid_and_train(self, input, label, cls, test_size=0.1, random_state=RANDOM_SEED):
         input_train, input_test, label_train, label_test, class_train, class_test = train_test_split(input, label, cls,
                                                                                                      test_size=test_size,
                                                                                                      random_state=random_state)
 
         return (input_train, label_train, class_train), (input_test, label_test, class_test)
+
+
+class WordSegmentationDatasetBuilder(NERDatasetBuilder):
+    def __init__(self,
+                 input_path: Path,
+                 file_type: str = 'text',
+                 input_vocab: Vocabulary = None,
+                 label_vocab: Vocabulary = None,
+                 dataset_dir: str = Path('./dataset/word_segment')):
+
+        self._dataset_dir = dataset_dir
+        self._has_resource = False
+
+        if os.path.isdir(self._dataset_dir):
+            try:
+                train_data_save_path = self._dataset_dir / TRAIN_DATASET_FILENAME
+                valid_data_save_path = self._dataset_dir / VALIDATION_DATASET_FILENAME
+
+                input_vocab_path = self._dataset_dir / INPUT_VOCAB_FILENAME
+                label_vocab_path = self._dataset_dir / TAG_VOCAB_FILENAME
+
+                if not os.path.exists(train_data_save_path):
+                    raise FileNotFoundError()
+
+                if not os.path.exists(valid_data_save_path):
+                    raise FileNotFoundError()
+
+                if not os.path.exists(input_vocab_path):
+                    raise FileNotFoundError()
+
+                if not os.path.exists(label_vocab_path):
+                    raise FileNotFoundError()
+
+                self._input_vocab = Vocabulary().from_json(input_vocab_path)
+                self._label_vocab = Vocabulary().from_json(label_vocab_path)
+
+                self._train_data_path = [train_data_save_path]
+                self._valid_data_path = [valid_data_save_path]
+
+                self._has_resource = True
+
+                return
+            except:
+                raise ValueError()
+
+        self._input_path = input_path
+        self._file_type = file_type
+
+        self._label = None
+
+        if file_type == 'text':
+            self._input_text = self._load_text(self._input_path)
+        else:
+            raise NotImplementedError()
+
+        logger.info('now labelize dataset...')
+        self._raw_input, self._raw_label = self._self_labelize(self._input_text)
+
+        self._input_vocab = input_vocab
+        self._label_vocab = label_vocab
+
+        self._train_data_path = list()
+        self._valid_data_path = list()
+
+        self._build_dataset_dir()
+
+    def _self_labelize(self, text_dataset):
+        inputs, labels = list(), list()
+
+        for s in text_dataset:
+            s = remove_multiple_spaces(s)
+            s, t = labelize(s)
+
+            s = ' '.join([ch for ch in s])
+            t = ' '.join([ch for ch in t])
+
+            inputs.append(s)
+            labels.append(t)
+
+        return inputs, labels

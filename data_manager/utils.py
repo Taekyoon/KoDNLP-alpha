@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from configs.constants import INPUT_VOCAB_FILENAME, TAG_VOCAB_FILENAME, CLASS_VOCAB_FILENAME
-from data_manager.builder import NERDatasetBuilder, SLUDatasetBuilder
+from data_manager.builder import NERDatasetBuilder, SLUDatasetBuilder, WordSegmentationDatasetBuilder
 from data_manager.vocab import Vocabulary
 
 
@@ -9,6 +9,8 @@ def create_builder(type, dataset_configs, deploy_path='./tmp'):
     if type == 'ner':
         builder = NERDatasetBuilder(Path(dataset_configs['input']), Path(dataset_configs['label']),
                                     dataset_dir=deploy_path)
+    elif type == 'word_segment':
+        builder = WordSegmentationDatasetBuilder(Path(dataset_configs['input']), dataset_dir=deploy_path)
     elif type == 'slu':
         builder = SLUDatasetBuilder(Path(dataset_configs['input']), Path(dataset_configs['slots']),
                                     Path(dataset_configs['intents']), dataset_dir=deploy_path)
@@ -26,7 +28,7 @@ def create_builder(type, dataset_configs, deploy_path='./tmp'):
 
 
 def load_vocab(type, load_path):
-    if type == 'ner':
+    if type == 'ner' or type == 'word_segment':
         input_vocab_path = load_path / 'dataset' / INPUT_VOCAB_FILENAME
         label_vocab_path = load_path / 'dataset' / TAG_VOCAB_FILENAME
 

@@ -5,6 +5,8 @@ import os
 import sys
 from pathlib import Path
 
+from typing import List
+
 import torch
 
 
@@ -27,6 +29,23 @@ def load_json(path):
     return json_obj
 
 
+def load_text(path: Path) -> List[str]:
+    dataset = list()
+    filelines = get_filelines(path)
+
+    with open(path, 'r') as textfile:
+        for i in range(filelines):
+            textline = ''
+            try:
+                textline = textfile.readline().rstrip().replace('\n', '')
+            except ValueError() as e:
+                pass
+
+            dataset.append(textline)
+
+    return dataset
+
+
 def make_dir_if_not_exist(dir_path: str):
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
@@ -37,7 +56,7 @@ def get_filelines(path: Path) -> int:
 
 
 def load_model(path: Path, model: torch.nn.Module) -> torch.nn.Module:
-    model.load_state_dict(torch.load(path))
+    model.load_state_dict(torch.load(path, map_location='cpu'))
     return model
 
 

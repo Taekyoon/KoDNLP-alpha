@@ -313,9 +313,11 @@ class CRF(nn.Module):
 
             # follow the backpointers to build the sequence of labels
             sample_path = self._find_best_path(i, sample_final_tag, sample_backpointers)
+            padded_sample_path = torch.zeros(seq_length).long()
+            padded_sample_path[:sample_length] += sample_path
 
             # add this path to the list of best sequences
-            best_sequences.append(sample_path)
+            best_sequences.append(padded_sample_path)
 
         best_sequences = torch.stack(best_sequences)
 

@@ -2,6 +2,8 @@
 ## TAGS for NER and SLU models
 START_TAG = '<bos>'
 STOP_TAG = '<eos>'
+UNK = '<unk>'
+PAD = '<pad>'
 
 
 TRAIN_DATASET_FILENAME = 'train_data.json'

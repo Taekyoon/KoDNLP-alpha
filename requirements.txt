@@ -7,3 +7,5 @@ tb-nightly
 future
 Pillow
 prettytable
+jiwer
+flask

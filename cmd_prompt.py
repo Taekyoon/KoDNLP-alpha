@@ -7,7 +7,7 @@ from prettytable import PrettyTable
 from data_manager.utils import load_vocab
 from data_manager.bert_tokenization.utils import create_bert_tokenizer
 from model.utils import create_crf_model
-from run_utils import ner_postprocessing
+from postpro.ner import process_by_ner
 
 from utils import parse_args, load_json, load_model
 
@@ -60,7 +60,7 @@ def main(configs):
 
             intent = vocabs['class_vocab'].to_tokens(torch.argmax(class_prob, dim=-1).tolist())[0]
 
-            slot_tags, slots = ner_postprocessing(labeled_tag_seq, tokens)
+            slot_tags, slots = process_by_ner(labeled_tag_seq, tokens)
 
             slot_table = PrettyTable(['Slot', 'Type'])
 

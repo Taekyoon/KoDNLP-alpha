@@ -7,7 +7,7 @@ from torch import Tensor
 from torch.utils.data import Dataset
 
 
-class NERDatasetFromJSONFile(Dataset):
+class SequenceTagDatasetFromJSONFile(Dataset):
     def __init__(self,
                  json_path: str,
                  enable_length: bool = True,
@@ -56,7 +56,7 @@ class NERDatasetFromJSONFile(Dataset):
         return sampled_instances
 
 
-class SLUDatasetFromJSONFile(Dataset):
+class JointClsNTagDatasetFromJSONFile(Dataset):
     def __init__(self,
                  json_path: str,
                  enable_length: bool = True,

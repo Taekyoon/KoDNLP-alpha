@@ -2,7 +2,6 @@ from configs.constants import RANDOM_SEED
 
 import logging
 import torch
-import numpy as np
 from tqdm import tqdm
 from pathlib import Path
 
@@ -12,7 +11,7 @@ from trainer.metrics import f1
 logger = logging.getLogger(__name__)
 
 
-class NERModelTrainer(Trainer):
+class SequenceTaggingModelTrainer(Trainer):
     def __init__(self,
                  train_data_loader,
                  valid_data_loader,
@@ -24,7 +23,8 @@ class NERModelTrainer(Trainer):
                  optimizer=torch.optim.Adam,
                  metric_fn=None,
                  gpu_device=-1,
-                 random_seed=RANDOM_SEED):
+                 random_seed=RANDOM_SEED,
+                 eval_labels=None):
 
         self._epochs = epochs
         self._eval_steps = eval_steps
@@ -51,12 +51,15 @@ class NERModelTrainer(Trainer):
 
         self._metric_fn = metric_fn
 
+        self._eval_labels = eval_labels
+
         logger.info('deploy path: {}'.format(self._deploy_path))
         logger.info('random seed number: {}'.format(self._random_seed))
         logger.info('learning rate: {}'.format(self._learning_rate))
         logger.info('evaluation check steps: {}'.format(self._eval_steps))
         logger.info('number of epochs: {}'.format(self._epochs))
         logger.info('training device: {}'.format(self._device.type))
+        logger.info('eval labels: {}'.format(self._eval_labels))
 
     def _eval(self):
         score, f1_score = 0., 0.
@@ -75,11 +78,13 @@ class NERModelTrainer(Trainer):
             target_batch = sampled_batch['entities'].view(batch_size, -1).to(self._device)
 
             pred_score, tag_seq = self._model(input_batch)
-            score += pred_score.item()
+            score += torch.mean(pred_score).item()
             try:
-                f1_score += f1(tag_seq.detach().numpy(), target_batch.detach().numpy())
-            except:
+                f1_score += f1(tag_seq.cpu().detach().numpy(), target_batch.cpu().detach().numpy(),
+                               labels=self._eval_labels)
+            except Exception as e:
                 score_failure_cnt += 1
+                logger.warning("Error message while calculating f1 score: {}".formate(e.with_traceback()))
                 logger.info('f1 score failure {} times'.format(score_failure_cnt))
         else:
             score = score / (step + 1)
@@ -138,7 +143,8 @@ class NERModelTrainer(Trainer):
             logger.info(
                 'epoch : {}, steps : {}, tr_loss : {:.3f}, val_f1 : {:.3f}, val_score : {:.3f}'.format(epoch + 1,
                                                                                                        total_steps,
-                                                                                                       tr_loss / (step + 1),
+                                                                                                       tr_loss / (
+                                                                                                                   step + 1),
                                                                                                        val_f1,
                                                                                                        val_score))
             logger.info('current best tag f1: {:.3f}'.format(self.best_val_f1_score))

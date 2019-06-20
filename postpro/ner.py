@@ -1,11 +1,11 @@
-def ner_postprocessing(ner_tags, text):
+def process_by_ner(text, tags):
     tag_stack = []
     entity_stack = []
 
     entities = []
     entity_tags = []
 
-    for n, t in zip(ner_tags, text):
+    for n, t in zip(tags, text):
         if not (n == 'O' or n == '<pad>'):
             state, tag = n.split('-')
             if state == 'B':
