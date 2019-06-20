@@ -1,8 +1,14 @@
+import numpy as np
+
 import torch
 from torch import nn
 from torch.nn import Embedding, Linear, CrossEntropyLoss
 
 from model.modules.rnn import BiLSTM, BiLSTMCell
+
+from configs.constants import RANDOM_SEED
+
+np.random.seed(RANDOM_SEED)
 
 
 class BiLSTMEncoder(nn.Module):
@@ -39,16 +45,46 @@ class BiLSTMDecoder(nn.Module):
 
 
 class BiLSTMSeq2Seq(nn.Module):
-    def __init__(self, encoder: BiLSTMEncoder, decoder: BiLSTMDecoder):
+    def __init__(self, encoder: BiLSTMEncoder, decoder: BiLSTMDecoder, bos_idx=1, eos_idx=2, teacher_force_rate=0.7):
         super(BiLSTMSeq2Seq, self).__init__()
+
+        self.teacher_force_rate = teacher_force_rate
+
+        self.bos_idx = bos_idx
+        self.eos_idx = eos_idx
 
         self.encoder = encoder
         self.decoder = decoder
 
         self.ce_loss = CrossEntropyLoss()
 
-    def forward(self, inputs: torch.Tensor):
-        pass
+    def forward(self, inputs: torch.Tensor, max_seq_len: int = 20):
+        batch_size = inputs.size(0)
+
+        if batch_size > 1:
+            raise ValueError('input batch size should be 1.')
+
+        encoder_outputs, encoder_hidden = self.encoder(inputs)
+
+        decoder_hidden = encoder_outputs
+
+        decoder_input = torch.new_full((batch_size, 1), self.bos_idx)
+        decoded_sequence = list()
+
+        for i in range(max_seq_len):
+            if decoder_input.cpu().tolist()[0] == self.eos_idx:
+                break
+
+            decoder_output, next_decoder_hidden = self.decoder(decoder_input, decoder_hidden)
+            decoded_label = torch.argmax(decoder_output, dim=-1)
+            decoded_sequence.append(decoded_label)
+
+            decoder_input = decoded_label
+            decoder_hidden = next_decoder_hidden
+
+        output_seq = torch.stack(decoded_sequence, dim=1)
+
+        return output_seq
 
     def loss(self, inputs: torch.Tensor, targets: torch.Tensor):
         target_seq_len = targets.size(1)
@@ -57,16 +93,23 @@ class BiLSTMSeq2Seq(nn.Module):
         encoder_outputs, encoder_hidden = self.encoder(inputs)
 
         decoder_hidden = encoder_outputs
+
+        decoder_input = targets[:, 0]
         loss = list()
 
-        for i in range(target_seq_len):
-            decoder_output, next_decoder_hidden = self.decoder(targets[:, i], decoder_hidden)
-            step_loss = self.ce_loss(decoder_output, targets.squeeze(-1))
-
+        for i in range(1, target_seq_len-1):
+            decoder_output, next_decoder_hidden = self.decoder(decoder_input, decoder_hidden)
+            decoded_label = torch.argmax(decoder_output, dim=-1)
+            step_loss = self.ce_loss(decoder_output, targets[:, i+1])
             loss.append(step_loss)
+
+            decoder_input = targets[:, i] if self.teacher_force() else decoded_label
             decoder_hidden = next_decoder_hidden
 
         loss = torch.stack(loss, dim=1) * target_mask
         loss = torch.mean(loss, 1)
 
         return loss
+
+    def teacher_force(self):
+        return self.teacher_force_rate > np.random.rand(1)[0]
