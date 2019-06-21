@@ -1,5 +1,7 @@
 from configs.constants import RANDOM_SEED
 
+import gc
+
 import logging
 import torch
 from tqdm import tqdm
@@ -94,7 +96,7 @@ class SequenceTaggingModelTrainer(Trainer):
 
     def _train_epoch(self, epoch):
         steps_in_epoch = len(self._train_data_loader)
-        total, tr_loss = 0, 0
+        tr_loss = 0.
 
         logger.info('start training epoch {}'.format(epoch + 1))
 
@@ -110,7 +112,7 @@ class SequenceTaggingModelTrainer(Trainer):
             target_batch = sampled_batch['entities'].view(batch_size, -1).to(self._device)
 
             loss = self._model.loss(input_batch, target_batch)
-            tr_loss += loss
+            tr_loss += loss.cpu().item()
             self._backprop(loss, self._optimizer)
 
             if self._eval_steps > 0 and total_steps % self._eval_steps == 0:
@@ -130,6 +132,7 @@ class SequenceTaggingModelTrainer(Trainer):
                                                                                                            val_score))
                 filename = 'checkpoint_' + str(total_steps) + '_model.pkl'
                 self._save_model(self._model, self._deploy_path / 'checkpoint' / filename)
+                gc.collect()
         else:
             logger.info('epoch {} is done!'.format(epoch + 1))
             val_score, val_f1 = self._eval()
@@ -143,10 +146,9 @@ class SequenceTaggingModelTrainer(Trainer):
             logger.info(
                 'epoch : {}, steps : {}, tr_loss : {:.3f}, val_f1 : {:.3f}, val_score : {:.3f}'.format(epoch + 1,
                                                                                                        total_steps,
-                                                                                                       tr_loss / (
-                                                                                                                   step + 1),
+                                                                                                       tr_loss / (step + 1),
                                                                                                        val_f1,
                                                                                                        val_score))
-            logger.info('current best tag f1: {:.3f}'.format(self.best_val_f1_score))
-
-            return tr_loss / (step + 1)
+        logger.info('current best tag f1: {:.3f}'.format(self.best_val_f1_score))
+        gc.collect()
+        return tr_loss / (step + 1)

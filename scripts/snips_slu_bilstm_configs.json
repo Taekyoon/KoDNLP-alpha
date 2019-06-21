@@ -1,6 +1,6 @@
 {
   "type": "slu",
-  "gpu_device": -1,
+  "gpu_device": 0,
   "tokenizer": "space_tokenizer",
   "dataset": {
     "name": "snips",

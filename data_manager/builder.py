@@ -406,7 +406,7 @@ class SLUDatasetBuilder(DatasetBuilder):
 
         return instant_data_loader
 
-    def build_data_loader(self, batch_size, limit_pad_len, enable_length=True):
+    def build_data_loader(self, batch_size, limit_pad_len, enable_length=True, valid_batch_size=None):
         logger.info('now get training dataloader object...')
         train_dataset = JointClsNTagDatasetFromJSONFile(self._train_data_path[0],
                                                         limit_pad_len=limit_pad_len,

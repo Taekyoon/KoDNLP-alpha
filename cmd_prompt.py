@@ -60,7 +60,7 @@ def main(configs):
 
             intent = vocabs['class_vocab'].to_tokens(torch.argmax(class_prob, dim=-1).tolist())[0]
 
-            slot_tags, slots = process_by_ner(labeled_tag_seq, tokens)
+            slot_tags, slots = process_by_ner(tokens, labeled_tag_seq)
 
             slot_table = PrettyTable(['Slot', 'Type'])
 
@@ -69,9 +69,9 @@ def main(configs):
                 if tokenizer_type == 'syllable_tokenizer':
                     entity = s.replace(' ', '')
                 elif tokenizer_type == 'bert_tokenizer':
-                    entity = s.replace(' ', '')
-                    if entity[-1] == '_':
-                        entity = entity[:-1]
+                    entity = s.replace(' ', '').replace('_', ' ').strip()
+                    # if entity[-1] == '_':
+                    #     entity = entity[:-1]
 
                 slot_table.add_row([entity, t])
 

@@ -49,7 +49,8 @@ def text_request(query):
         slot_tags, slots = process_by_ner(tokens, labeled_tag_seq)
 
         intent = {'intent': intent, 'prob': intent_prob}
-        entities = [{'entity': tag, 'value': entity} for tag, entity in zip(slot_tags, slots)]
+        entities = [{'entity': tag, 'value': entity.replace(' ', '').replace('_', ' ').strip()} for tag, entity in
+                    zip(slot_tags, slots)]
 
         json_item = {'intent': intent, 'slots': entities}
     else:
@@ -59,7 +60,6 @@ def text_request(query):
 
 
 def main(configs):
-
     global tokenizer_type
     global task_type
     global model

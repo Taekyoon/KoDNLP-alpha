@@ -8,7 +8,7 @@
       "input": "./corpus/sejong_raw/train.txt"
     },
     "test": {
-      "input": "./corpus/sejong_raw/test.txt"
+      "input": "./corpus/wiki_kor_raw/test.txt"
     }
   },
   "deploy": {
@@ -22,7 +22,7 @@
     }
   },
   "train": {
-    "epochs": 50,
+    "epochs": 10,
     "eval_steps": -1,
     "eval_batch_size": 512,
     "batch_size": 128,

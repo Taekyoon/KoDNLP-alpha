@@ -34,11 +34,11 @@ def create_trainer(type, model, data_builder, train_configs, gpu_device=-1, depl
         tag_vocabs = data_builder.tag_vocab.idx_to_word
         tag_to_idx = data_builder.tag_to_idx
 
-        tag_inidices = [tag_to_idx[t] for t in tag_vocabs]
-
         del tag_vocabs[tag_vocabs.index(PAD)]
         del tag_vocabs[tag_vocabs.index(START_TAG)]
         del tag_vocabs[tag_vocabs.index(STOP_TAG)]
+
+        tag_inidices = [tag_to_idx[t] for t in tag_vocabs]
 
         trainer = SLUModelTrainer(train_data_loader,
                                   valid_data_loader,
