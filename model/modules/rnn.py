@@ -33,7 +33,7 @@ class BiLSTM(nn.Module):
 
 class BiLSTMCell(nn.Module):
     def __init__(self, input_size: int, hidden_size: int, num_layers: int = 1, dropout: float = 0.) -> None:
-        super(BiLSTM, self).__init__()
+        super(BiLSTMCell, self).__init__()
         self.cell = nn.LSTM(input_size, hidden_size, batch_first=True, bidirectional=True,
                             num_layers=num_layers, dropout=dropout)
 
