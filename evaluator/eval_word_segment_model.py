@@ -51,15 +51,15 @@ class WordSegmentModelEvaluator(object):
                 _, tag_seq = self._model(input_batch)
                 labeled_tag_seq = self._tag_vocab.to_tokens(tag_seq[0].tolist())
                 pred_text = segment_word_by_tags(unspaced_text, labeled_tag_seq)
-                print('org: ', text.strip())
-                print('prd: ', pred_text.strip())
+                # print('org: ', text.strip())
+                # print('prd: ', pred_text.strip())
                 wer_score += jiwer.wer(text.strip(), pred_text.strip())
             except Exception as e:
                 score_failure_cnt += 1
                 logger.warning("Error message while calculating wer score: {}".format(e))
                 logger.info('wer score failure {} times'.format(score_failure_cnt))
                 raise ValueError()
-            sleep(0.7)
+            # sleep(0.7)
 
         else:
             wer_score = wer_score / (step + 1 - score_failure_cnt)

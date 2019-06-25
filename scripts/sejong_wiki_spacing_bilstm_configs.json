@@ -5,14 +5,14 @@
     "name": "wiki_kor_raw",
     "train": {
       "vocab_min_freq": 10,
-      "input": "./corpus/wiki_kor_raw/train.txt"
+      "input": "./corpus/sejong_wiki_raw/train.txt"
     },
     "test": {
-      "input": "./corpus/sejong_raw/test.txt"
+      "input": "./corpus/sejong_wiki_raw/test.txt"
     }
   },
   "deploy": {
-    "path": "./tmp/wiki_spacing_epoch_50,batch_128_len_100"
+    "path": "./tmp/sejong_wiki_spacing_epoch_,batch_128_len_100"
   },
   "model": {
     "type": "bilstm_crf",
@@ -22,7 +22,7 @@
     }
   },
   "train": {
-    "epochs": 50,
+    "epochs": 40,
     "eval_steps": 5000,
     "eval_batch_size": 512,
     "batch_size": 128,
