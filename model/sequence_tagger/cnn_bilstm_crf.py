@@ -17,7 +17,7 @@ class CNNBilstmCRF(nn.Module):
 
         self._embedding = nn.Embedding(vocab_size, embedding_dim, padding_idx=0)
         self._multi_conv = MultiCNN(embedding_dim, channel_dim, convs_configs)
-        self._bilstm = BiLSTM(embedding_dim, hidden_dim)
+        self._bilstm = BiLSTM(channel_dim, hidden_dim)
         self._fc = nn.Linear(2 * hidden_dim, len(tag_to_idx))
 
         self._crf = CRF(len(self._tag_to_idx), bos_tag_id=self._tag_to_idx[START_TAG],

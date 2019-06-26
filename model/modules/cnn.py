@@ -1,10 +1,11 @@
 import torch
 from torch import nn
 from torch.nn.modules import Conv1d, Linear, Dropout, BatchNorm1d
+from torch.nn import functional as F
 
 
 class MultiCNN(nn.Module):
-    def __init__(self, input_size, output_size, convs_configs, dropout=0., normalize=True):
+    def __init__(self, input_size, output_size, convs_configs, dropout=.5, normalize=True):
         super(MultiCNN, self).__init__()
         input_size = input_size
         concat_cnn_output_size = 0
@@ -35,7 +36,7 @@ class MultiCNN(nn.Module):
         inputs = inputs.transpose(-2, -1)
 
         for cnn_module in self.cnn_modules:
-            cnn_outputs.append(cnn_module(inputs))
+            cnn_outputs.append(F.relu(cnn_module(inputs)))
 
         concat_cnn_outputs = torch.cat(cnn_outputs, dim=-2)
 

@@ -1,4 +1,5 @@
 from model.sequence_tagger.bilstm_crf import BilstmCRF
+from model.sequence_tagger.cnn_bilstm_crf import CNNBilstmCRF
 from model.joint_classifier_and_sequence_tagger.bilstm_crf import BilstmCRF as BilstmCRF_SLU
 
 
@@ -10,6 +11,10 @@ def create_crf_model(type, tag_to_idx, model_configs):
         if model_type == 'bilstm_crf':
             model = BilstmCRF(vocab_size, tag_to_idx, model_params['word_embedding_dims'],
                                model_params['hidden_dims'])
+        if model_type == 'cnn_bilstm_crf':
+            model = CNNBilstmCRF(vocab_size, tag_to_idx, model_params['word_embedding_dims'],
+                                 model_params['channel_dims'], model_params['conv_configs'],
+                                 model_params['hidden_dims'])
         else:
             raise ValueError()
     elif type == 'slu':
