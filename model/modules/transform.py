@@ -4,7 +4,8 @@ import torch.nn as nn
 
 # This all implementations referred from huggingface
 class Transformer(nn.Module):
-    def __init__(self, embed_dim, hidden_dim, num_embeddings, num_max_positions, num_heads, num_layers, dropout, causal):
+    def __init__(self, embed_dim, hidden_dim, num_embeddings, num_max_positions=100, num_heads=8, num_layers=4,
+                 dropout=.1, causal=False):
         super().__init__()
         self.causal = causal
         self.tokens_embeddings = nn.Embedding(num_embeddings, embed_dim)
@@ -13,6 +14,7 @@ class Transformer(nn.Module):
 
         self.attentions, self.feed_forwards = nn.ModuleList(), nn.ModuleList()
         self.layer_norms_1, self.layer_norms_2 = nn.ModuleList(), nn.ModuleList()
+
         for _ in range(num_layers):
             self.attentions.append(nn.MultiheadAttention(embed_dim, num_heads, dropout=dropout))
             self.feed_forwards.append(nn.Sequential(nn.Linear(embed_dim, hidden_dim),
@@ -44,5 +46,5 @@ class Transformer(nn.Module):
             x = feed_forward(h)
             x = self.dropout(x)
             h = x + h
-            print(h)
+
         return h

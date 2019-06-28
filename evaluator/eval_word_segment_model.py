@@ -22,10 +22,13 @@ class WordSegmentModelEvaluator(object):
                  model: nn.Module,
                  dataset: List,
                  input_vocab: Vocabulary,
-                 tag_vocab: Vocabulary):
+                 tag_vocab: Vocabulary,
+                 limit_len=None):
         self._model = model
         self._input_vocab = input_vocab
         self._tag_vocab = tag_vocab
+
+        self.limit_len = limit_len
 
         self._dataset = dataset
 
@@ -42,6 +45,8 @@ class WordSegmentModelEvaluator(object):
         score_failure_cnt = 0
 
         for step, text in tqdm(enumerate(self._dataset), desc='evaluation steps', total=len(self._dataset)):
+            if self.limit_len is not None:
+                text = text[:self.limit_len]
             try:
                 unspaced_text = unspacing(text.strip())
                 tokenized_text = text_to_list(unspaced_text)

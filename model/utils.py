@@ -1,5 +1,9 @@
 from model.sequence_tagger.bilstm_crf import BilstmCRF
 from model.sequence_tagger.cnn_bilstm_crf import CNNBilstmCRF
+from model.sequence_tagger.transformer import TransformerTagger
+from model.sequence_tagger.transformer import TransformerCRF
+
+from model.joint_classifier_and_sequence_tagger.cnn_bilstm_crf import CNNBilstmCRF as CNNBilstmCRF_SLU
 from model.joint_classifier_and_sequence_tagger.bilstm_crf import BilstmCRF as BilstmCRF_SLU
 
 
@@ -10,11 +14,19 @@ def create_crf_model(type, tag_to_idx, model_configs):
         vocab_size = model_configs['vocab_size']
         if model_type == 'bilstm_crf':
             model = BilstmCRF(vocab_size, tag_to_idx, model_params['word_embedding_dims'],
-                               model_params['hidden_dims'])
-        if model_type == 'cnn_bilstm_crf':
+                              model_params['hidden_dims'])
+        elif model_type == 'cnn_bilstm_crf':
             model = CNNBilstmCRF(vocab_size, tag_to_idx, model_params['word_embedding_dims'],
                                  model_params['channel_dims'], model_params['conv_configs'],
                                  model_params['hidden_dims'])
+        elif model_type == 'transformer':
+            model = TransformerTagger(vocab_size, len(tag_to_idx), model_params['word_embedding_dims'],
+                                      model_params['hidden_dims'], model_params['head_size'],
+                                      model_params['layer_size'])
+        elif model_type == 'transformer_crf':
+            model = TransformerCRF(vocab_size, tag_to_idx, model_params['word_embedding_dims'],
+                                   model_params['hidden_dims'], model_params['head_size'],
+                                   model_params['layer_size'])
         else:
             raise ValueError()
     elif type == 'slu':
@@ -25,7 +37,11 @@ def create_crf_model(type, tag_to_idx, model_configs):
 
         if model_type == 'bilstm_crf':
             model = BilstmCRF_SLU(vocab_size, class_size, tag_to_idx, model_params['word_embedding_dims'],
-                              model_params['hidden_dims'])
+                                  model_params['hidden_dims'])
+        elif model_type == 'cnn_bilstm_crf':
+            model = CNNBilstmCRF_SLU(vocab_size, class_size, tag_to_idx, model_params['word_embedding_dims'],
+                                     model_params['channel_dims'], model_params['conv_configs'],
+                                     model_params['hidden_dims'])
         else:
             raise ValueError()
     else:

@@ -17,13 +17,31 @@
     }
   },
   "deploy": {
-    "path": "./tmp/slu_initial_test"
+    "path": "./tmp/slu_cnn_initial_test"
   },
   "model": {
-    "type": "bilstm_crf",
+    "type": "cnn_bilstm_crf",
     "parameters": {
       "word_embedding_dims": 64,
       "hidden_dims": 128,
+      "channel_dims": 64,
+      "conv_configs": [
+        {
+          "channel_size": 64,
+          "kernel_size": 3,
+          "padding": 1
+        },
+        {
+          "channel_size": 64,
+          "kernel_size": 5,
+          "padding": 2
+        },
+        {
+          "channel_size": 64,
+          "kernel_size": 7,
+          "padding": 3
+        }
+      ],
       "lstm_num_layers": 1,
       "lstm_dropout": 0.5
     }

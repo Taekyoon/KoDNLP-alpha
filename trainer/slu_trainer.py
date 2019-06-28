@@ -128,7 +128,10 @@ class SLUModelTrainer(Trainer):
             if self._eval_steps > 0 and total_steps % self._eval_steps == 0:
                 val_score, val_tag_f1, val_class_acc = self._eval()
 
-                if val_class_acc >= self.best_class_val_acc_score and val_tag_f1 >= self.best_tag_val_f1_score:
+                joint_score = (val_class_acc + val_tag_f1) / 2
+                best_joint_score = (self.best_class_val_acc_score + self.best_tag_val_f1_score) / 2
+
+                if joint_score >= best_joint_score:
                     self.best_class_val_acc_score = val_class_acc
                     self.best_tag_val_f1_score = val_tag_f1
 
@@ -159,7 +162,10 @@ class SLUModelTrainer(Trainer):
             logger.info('epoch {} is done!'.format(epoch + 1))
             val_score, val_tag_f1, val_class_acc = self._eval()
 
-            if val_class_acc >= self.best_class_val_acc_score and val_tag_f1 >= self.best_tag_val_f1_score:
+            joint_score = (val_class_acc + val_tag_f1) / 2
+            best_joint_score = (self.best_class_val_acc_score + self.best_tag_val_f1_score) / 2
+
+            if joint_score >= best_joint_score:
                 self.best_class_val_acc_score = val_class_acc
                 self.best_tag_val_f1_score = val_tag_f1
 

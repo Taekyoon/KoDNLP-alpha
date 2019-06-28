@@ -5,7 +5,7 @@ from evaluator.eval_ner_model import NERModelEvaluator
 from evaluator.eval_word_segment_model import WordSegmentModelEvaluator
 
 
-def create_evaluator(type, model, data_builder, dataset_configs):
+def create_evaluator(type, model, data_builder, dataset_configs, limit_len=None):
     if type == 'ner':
         eval_data_loader = data_builder.build_instant_data_loader(dataset_configs['input'],
                                                               dataset_configs['label'])
@@ -23,7 +23,7 @@ def create_evaluator(type, model, data_builder, dataset_configs):
         input_vocab = data_builder.input_vocab
         tag_vocab = data_builder.tag_vocab
 
-        evaluator = WordSegmentModelEvaluator(model, dataset, input_vocab, tag_vocab)
+        evaluator = WordSegmentModelEvaluator(model, dataset, input_vocab, tag_vocab, limit_len=limit_len)
     elif type == 'slu':
         evaluator = SLUModelEvaluator(model,
                                       eval_data_loader)

@@ -52,7 +52,9 @@ def text_request(query):
         entities = [{'entity': tag, 'value': entity.replace(' ', '').replace('_', ' ').strip()} for tag, entity in
                     zip(slot_tags, slots)]
 
-        json_item = {'intent': intent, 'slots': entities}
+        raws = {'slot_tags': labeled_tag_seq, 'tokenized_text': ' '.join(tokens)}
+
+        json_item = {'intent': intent, 'slots': entities, 'raws': raws}
     else:
         raise NotImplementedError()
 

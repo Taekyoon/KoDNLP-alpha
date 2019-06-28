@@ -34,6 +34,9 @@ def main(configs, test_only):
 
     if not test_only:
         model = create_crf_model(task_type, tag_to_idx, model_configs)
+        if 'load_model' in configs:
+            logger.info('load model: {}'.format(configs['load_model']))
+            model = load_model(configs['load_model'], model)
         trainer = create_trainer(task_type, model, data_builder, train_configs,
                                  gpu_device=gpu_device, deploy_path=deploy_path / 'model')
 
@@ -41,11 +44,14 @@ def main(configs, test_only):
         trainer.train()
 
     if test_dataset_configs is not None:
+        limit_len = test_dataset_configs['limit_len'] if 'limit_len' in test_dataset_configs else None
+
         best_model_path = deploy_path / 'model' / 'best_val.pkl'
         logger.info('load the best model')
         test_model = create_crf_model(task_type, tag_to_idx, model_configs)
         test_model = load_model(best_model_path, test_model)
-        evaluator = create_evaluator(task_type, test_model, data_builder, test_dataset_configs)
+        evaluator = create_evaluator(task_type, test_model, data_builder, test_dataset_configs,
+                                     limit_len)
         evaluator.eval()
         logger.info(evaluator.summary())
 

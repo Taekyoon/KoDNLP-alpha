@@ -1,6 +1,7 @@
 {
   "type": "word_segment",
   "gpu_device": 0,
+  "load_model": "./tmp/sejong_wiki_spacing_epoch_40_batch_128_len_100/model/checkpoint/checkpoint_340000_model.pkl",
   "dataset": {
     "name": "wiki_kor_raw",
     "train": {
@@ -12,7 +13,7 @@
     }
   },
   "deploy": {
-    "path": "./tmp/sejong_wiki_spacing_epoch_,batch_128_len_100"
+    "path": "./tmp/sejong_wiki_spacing_epoch_40_batch_128_len_100"
   },
   "model": {
     "type": "bilstm_crf",
@@ -22,7 +23,7 @@
     }
   },
   "train": {
-    "epochs": 40,
+    "epochs": 50,
     "eval_steps": 5000,
     "eval_batch_size": 512,
     "batch_size": 128,

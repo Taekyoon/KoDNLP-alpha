@@ -4,7 +4,7 @@ from model.sequence_tagger.cnn_bilstm_crf import CNNBilstmCRF
 from configs.constants import PAD, START_TAG, STOP_TAG
 
 
-def test_train_bi_lstm_seq2seq():
+def test_train_cnn_bi_lstm_crf():
     vocab_size = 100
     channel_dim = 32
     conv_configs = [{'channel_size': 16, 'kernel_size': 3, 'padding': 1},
@@ -23,7 +23,7 @@ def test_train_bi_lstm_seq2seq():
     assert isinstance(loss, torch.Tensor)
 
 
-def test_infer_bi_lstm_seq2seq():
+def test_infer_cnn_bi_lstm_crf():
     vocab_size = 100
     channel_dim = 32
     conv_configs = [{'channel_size': 16, 'kernel_size': 3, 'padding': 1},
