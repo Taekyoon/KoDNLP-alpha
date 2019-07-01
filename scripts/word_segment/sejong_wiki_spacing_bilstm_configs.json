@@ -9,7 +9,7 @@
       "input": "./corpus/sejong_wiki_raw/train.txt"
     },
     "test": {
-      "input": "./corpus/sejong_wiki_raw/test.txt"
+      "input": "./corpus/wiki_kor_raw/test.txt"
     }
   },
   "deploy": {
