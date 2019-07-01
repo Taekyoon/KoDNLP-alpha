@@ -1,7 +1,7 @@
 from pathlib import Path
 from data_manager.builder import SLUDatasetBuilder
 from model.joint_classifier_and_sequence_tagger.bilstm_crf import BilstmCRF
-from trainer.slu_trainer import SLUModelTrainer
+from trainer.slu_trainer import JointSequenceTagAndClassModelTrainer
 
 
 def test_model_train_with_train_data():
@@ -10,9 +10,9 @@ def test_model_train_with_train_data():
     epochs = 400
     eval_steps = 10
 
-    input_path = './train/test/test_dataset/slu/input.txt'
-    label_path = './train/test/test_dataset/slu/output.txt'
-    class_path = './train/test/test_dataset/slu/class.txt'
+    input_path = './trainer/test/test_dataset/slu/input.txt'
+    label_path = './trainer/test/test_dataset/slu/output.txt'
+    class_path = './trainer/test/test_dataset/slu/class.txt'
 
     deploy_dir = Path('./train/test/test_dataset/slu/train_dataset')
 
@@ -29,12 +29,12 @@ def test_model_train_with_train_data():
 
     slu_model = BilstmCRF(len(word_to_idx), len(class_to_idx), tag_to_idx, embedding_dim, hidden_dim)
 
-    slu_trainer = SLUModelTrainer(train_data_loader,
-                                  valid_data_loader,
-                                  slu_model,
-                                  epochs,
-                                  eval_steps,
-                                  deploy_path=deploy_dir / 'model')
+    slu_trainer = JointSequenceTagAndClassModelTrainer(train_data_loader,
+                                                       valid_data_loader,
+                                                       slu_model,
+                                                       epochs,
+                                                       eval_steps,
+                                                       deploy_path=deploy_dir / 'model')
 
     slu_trainer.train()
 

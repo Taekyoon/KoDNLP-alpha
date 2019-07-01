@@ -95,7 +95,7 @@ class Vocabulary(object):
         vocab_obj['bos_token'] = self.bos_token
         vocab_obj['eos_token'] = self.eos_token
         vocab_obj['reserved_tokens'] = self.reserved_tokens
-        vocab_obj['word_frequency'] = dict(self.word_frequency)
+        vocab_obj['word_frequency'] = dict(self.word_frequency) if self.word_frequency is not None else None
         vocab_obj['word_to_idx'] = self._word_to_idx
         vocab_obj['idx_to_word'] = self._idx_to_word
 

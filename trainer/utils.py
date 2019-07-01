@@ -1,10 +1,11 @@
 from configs.constants import PAD, START_TAG, STOP_TAG
 
 from trainer.seq_tag_trainer import SequenceTaggingModelTrainer
-from trainer.slu_trainer import SLUModelTrainer
+from trainer.slu_trainer import JointSequenceTagAndClassModelTrainer
 
 
 def create_trainer(type, model, data_builder, train_configs, gpu_device=-1, deploy_path='./tmp'):
+    learning_rate = train_configs['learning_rate'] if 'learning_rate' in train_configs else 3e-4
     eval_batch_size = train_configs['eval_batch_size'] if 'eval_batch_size' in train_configs else 1
 
     train_data_loader, valid_data_loader = data_builder.build_data_loader(train_configs['batch_size'],
@@ -27,6 +28,7 @@ def create_trainer(type, model, data_builder, train_configs, gpu_device=-1, depl
                                               model,
                                               train_configs['epochs'],
                                               train_configs['eval_steps'],
+                                              learning_rate=learning_rate,
                                               deploy_path=deploy_path,
                                               gpu_device=gpu_device,
                                               eval_labels=tag_inidices)
@@ -40,14 +42,14 @@ def create_trainer(type, model, data_builder, train_configs, gpu_device=-1, depl
 
         tag_inidices = [tag_to_idx[t] for t in tag_vocabs]
 
-        trainer = SLUModelTrainer(train_data_loader,
-                                  valid_data_loader,
-                                  model,
-                                  train_configs['epochs'],
-                                  train_configs['eval_steps'],
-                                  deploy_path=deploy_path,
-                                  gpu_device=gpu_device,
-                                  eval_labels=tag_inidices)
+        trainer = JointSequenceTagAndClassModelTrainer(train_data_loader,
+                                                       valid_data_loader,
+                                                       model,
+                                                       train_configs['epochs'],
+                                                       train_configs['eval_steps'],
+                                                       deploy_path=deploy_path,
+                                                       gpu_device=gpu_device,
+                                                       eval_labels=tag_inidices)
     else:
         raise ValueError()
 

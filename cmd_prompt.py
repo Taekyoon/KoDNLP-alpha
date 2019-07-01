@@ -4,7 +4,7 @@ from pathlib import Path
 import logging
 from prettytable import PrettyTable
 
-from data_manager.utils import load_vocab
+from data_manager.utils import load_vocab_dir
 from data_manager.bert_tokenization.utils import create_bert_tokenizer
 from model.utils import create_crf_model
 from postpro.ner import process_by_ner
@@ -21,7 +21,7 @@ def main(configs):
     model_configs = configs['model']
     best_model_path = deploy_path / 'model' / 'best_val.pkl'
 
-    vocabs = load_vocab(task_type, deploy_path)
+    vocabs = load_vocab_dir(task_type, deploy_path)
 
     if 'input_vocab' in vocabs:
         model_configs['vocab_size'] = len(vocabs['input_vocab'].word_to_idx)

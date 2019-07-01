@@ -10,10 +10,10 @@ def test_model_train_with_train_data():
     epochs = 400
     eval_steps = 10
 
-    input_path = './train/test/test_dataset/ner/input.txt'
-    label_path = './train/test/test_dataset/ner/output.txt'
+    input_path = './trainer/test/test_dataset/ner/input.txt'
+    label_path = './trainer/test/test_dataset/ner/output.txt'
 
-    deploy_dir = Path('./train/test/test_dataset/ner/train_dataset')
+    deploy_dir = Path('./trainer/test/test_dataset/ner/train_dataset')
 
     batch_size = 2
     sequence_length = 15

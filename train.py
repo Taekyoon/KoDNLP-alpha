@@ -36,7 +36,12 @@ def main(configs, test_only):
         model = create_crf_model(task_type, tag_to_idx, model_configs)
         if 'load_model' in configs:
             logger.info('load model: {}'.format(configs['load_model']))
-            model = load_model(configs['load_model'], model)
+            if 'load_model_strict' in configs:
+                strict = configs['load_model_strict']
+            else:
+                strict = False
+            logger.info('set load model as strict method: {}'.format(strict))
+            model = load_model(configs['load_model'], model, strict=strict)
         trainer = create_trainer(task_type, model, data_builder, train_configs,
                                  gpu_device=gpu_device, deploy_path=deploy_path / 'model')
 

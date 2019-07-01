@@ -4,6 +4,8 @@ import gc
 
 import logging
 import torch
+from torch.utils.tensorboard import SummaryWriter
+
 from tqdm import tqdm
 from pathlib import Path
 
@@ -42,6 +44,7 @@ class SequenceTaggingModelTrainer(Trainer):
 
         self._device = torch.device('cuda:' + str(gpu_device)) if torch.cuda.is_available() \
                                                                   and gpu_device >= 0 else torch.device('cpu')
+        self._tb_writer = SummaryWriter(self._deploy_path / 'logs')
 
         if self._device.type == 'cpu':
             torch.manual_seed(self._random_seed)
@@ -64,6 +67,8 @@ class SequenceTaggingModelTrainer(Trainer):
         logger.info('eval labels: {}'.format(self._eval_labels))
 
     def _eval(self):
+        gc.collect()
+
         score, f1_score = 0., 0.
 
         logger.info('now evaluating...')
@@ -86,7 +91,7 @@ class SequenceTaggingModelTrainer(Trainer):
                                labels=self._eval_labels)
             except Exception as e:
                 score_failure_cnt += 1
-                logger.warning("Error message while calculating f1 score: {}".formate(e.with_traceback()))
+                logger.error("Error message while calculating f1 score: {}".format(e))
                 logger.info('f1 score failure {} times'.format(score_failure_cnt))
         else:
             score = score / (step + 1)
@@ -130,6 +135,11 @@ class SequenceTaggingModelTrainer(Trainer):
                                                                                                            tr_loss / (step + 1),
                                                                                                            val_f1,
                                                                                                            val_score))
+                self._tb_writer.add_scalar('train_loss', tr_loss / (step + 1), total_steps)
+                self._tb_writer.add_scalar('train_tag_loss', tr_loss / (step + 1), total_steps)
+
+                self._tb_writer.add_scalar('valid_tag_f1', val_f1, total_steps)
+
                 filename = 'checkpoint_' + str(total_steps) + '_model.pkl'
                 self._save_model(self._model, self._deploy_path / 'checkpoint' / filename)
                 gc.collect()

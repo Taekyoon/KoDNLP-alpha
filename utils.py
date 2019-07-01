@@ -55,8 +55,8 @@ def get_filelines(path: Path) -> int:
     return sum([1 for _ in open(path)])
 
 
-def load_model(path: Path, model: torch.nn.Module) -> torch.nn.Module:
-    model.load_state_dict(torch.load(path, map_location='cpu'))
+def load_model(path: Path, model: torch.nn.Module, strict=False) -> torch.nn.Module:
+    model.load_state_dict(torch.load(path, map_location='cpu'), strict=strict)
     return model
 
 

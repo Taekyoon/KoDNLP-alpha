@@ -4,10 +4,10 @@ from torch.utils.data import DataLoader
 
 
 def test_ner_dataset_builder_build_dataloader_as_default():
-    input_path = './data/test/test_dataset/ner/input.txt'
-    label_path = './data/test/test_dataset/ner/output.txt'
+    input_path = './data_manager/test/test_dataset/ner/input.txt'
+    label_path = './data_manager/test/test_dataset/ner/output.txt'
 
-    dataset_dir = Path('./data/test/test_dataset/ner/train_dataset')
+    dataset_dir = Path('./data_manager/test/test_dataset/ner/train_dataset')
 
     batch_size = 2
     sequence_length = 10
@@ -23,10 +23,10 @@ def test_ner_dataset_builder_build_dataloader_as_default():
 
 
 def test_ner_dataset_test_lodaer_iterate():
-    input_path = './data/test/test_dataset/ner/input.txt'
-    label_path = './data/test/test_dataset/ner/output.txt'
+    input_path = './data_manager/test/test_dataset/ner/input.txt'
+    label_path = './data_manager/test/test_dataset/ner/output.txt'
 
-    dataset_dir = Path('./data/test/test_dataset/ner/train_dataset')
+    dataset_dir = Path('./data_manager/test/test_dataset/ner/train_dataset')
 
     batch_size = 2
     sequence_length = 10
@@ -47,10 +47,10 @@ def test_ner_dataset_test_lodaer_iterate():
 
 
 def test_ner_dataset_valid_lodaer_iterate():
-    input_path = './data/test/test_dataset/ner/input.txt'
-    label_path = './data/test/test_dataset/ner/output.txt'
+    input_path = './data_manager/test/test_dataset/ner/input.txt'
+    label_path = './data_manager/test/test_dataset/ner/output.txt'
 
-    dataset_dir = Path('./data/test/test_dataset/ner/train_dataset')
+    dataset_dir = Path('./data_manager/test/test_dataset/ner/train_dataset')
 
     batch_size = 2
     sequence_length = 10
@@ -70,11 +70,11 @@ def test_ner_dataset_valid_lodaer_iterate():
 
 
 def test_slu_dataset_builder_build_dataloader_as_default():
-    input_path = './data/test/test_dataset/slu/input.txt'
-    label_path = './data/test/test_dataset/slu/output.txt'
-    class_path = './data/test/test_dataset/slu/class.txt'
+    input_path = './data_manager/test/test_dataset/slu/input.txt'
+    label_path = './data_manager/test/test_dataset/slu/output.txt'
+    class_path = './data_manager/test/test_dataset/slu/class.txt'
 
-    dataset_dir = Path('./data/test/test_dataset/slu/train_dataset')
+    dataset_dir = Path('./data_manager/test/test_dataset/slu/train_dataset')
 
     batch_size = 2
     sequence_length = 10
@@ -90,11 +90,11 @@ def test_slu_dataset_builder_build_dataloader_as_default():
 
 
 def test_slu_dataset_test_lodaer_iterate():
-    input_path = './data/test/test_dataset/slu/input.txt'
-    label_path = './data/test/test_dataset/slu/output.txt'
-    class_path = './data/test/test_dataset/slu/class.txt'
+    input_path = './data_manager/test/test_dataset/slu/input.txt'
+    label_path = './data_manager/test/test_dataset/slu/output.txt'
+    class_path = './data_manager/test/test_dataset/slu/class.txt'
 
-    dataset_dir = Path('./data/test/test_dataset/slu/train_dataset')
+    dataset_dir = Path('./data_manager/test/test_dataset/slu/train_dataset')
 
     batch_size = 2
     sequence_length = 10
@@ -115,9 +115,9 @@ def test_slu_dataset_test_lodaer_iterate():
 
 
 def test_slu_dataset_valid_lodaer_iterate():
-    input_path = './data/test/test_dataset/slu/input.txt'
-    label_path = './data/test/test_dataset/slu/output.txt'
-    class_path = './data/test/test_dataset/slu/class.txt'
+    input_path = './data_manager/test/test_dataset/slu/input.txt'
+    label_path = './data_manager/test/test_dataset/slu/output.txt'
+    class_path = './data_manager/test/test_dataset/slu/class.txt'
 
     dataset_dir = Path('./data/test/test_dataset/slu/train_dataset')
 
@@ -139,9 +139,9 @@ def test_slu_dataset_valid_lodaer_iterate():
 
 
 def test_slu_dataset_instant_lodaer_iterate():
-    input_path = './data/test/test_dataset/slu/input.txt'
-    label_path = './data/test/test_dataset/slu/output.txt'
-    class_path = './data/test/test_dataset/slu/class.txt'
+    input_path = './data_manager/test/test_dataset/slu/input.txt'
+    label_path = './data_manager/test/test_dataset/slu/output.txt'
+    class_path = './data_manager/test/test_dataset/slu/class.txt'
 
     dataset_dir = Path('./data/test/test_dataset/slu/train_dataset')
 

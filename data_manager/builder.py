@@ -13,7 +13,7 @@ from configs.constants import INPUT_VOCAB_FILENAME, TAG_VOCAB_FILENAME, CLASS_VO
 from data_manager.vocab import Vocabulary
 from data_manager.dataset import SequenceTagDatasetFromJSONFile, JointClsNTagDatasetFromJSONFile
 
-from utils import make_dir_if_not_exist, get_filelines, load_text
+from utils import make_dir_if_not_exist, load_text
 
 from prepro.word_segment import labelize, remove_multiple_spaces
 
@@ -142,21 +142,22 @@ class NERDatasetBuilder(DatasetBuilder):
         input_vocab_path = self._dataset_dir / INPUT_VOCAB_FILENAME
         label_vocab_path = self._dataset_dir / TAG_VOCAB_FILENAME
 
-        logger.info('build input text vocabulary...')
-        self._input_vocab = Vocabulary(max_size=max_size, min_freq=min_freq, bos_token=None, eos_token=None)
-        logger.info('build label vocabulary...')
-        self._label_vocab = Vocabulary(unknown_token=None)
+        if self._input_vocab is None:
+            logger.info('build input text vocabulary...')
+            self._input_vocab = Vocabulary(max_size=max_size, min_freq=min_freq, bos_token=None, eos_token=None)
+            input_data = self._splitify(self._raw_input)
+            self._input_vocab.fit(input_data)
 
-        input_data = self._splitify(self._raw_input)
-        label_data = self._splitify(self._raw_label)
+        if self._label_vocab is None:
+            logger.info('build label vocabulary...')
+            self._label_vocab = Vocabulary(unknown_token=None)
+            label_data = self._splitify(self._raw_label)
+            self._label_vocab.fit(label_data)
 
-        self._input_vocab.fit(input_data)
-        self._label_vocab.fit(label_data)
-
-        logger.info('save input text vocabulary...')
         self._input_vocab.to_json(input_vocab_path)
-        logger.info('save label vocabulary...')
+        logger.info('save input text vocabulary...')
         self._label_vocab.to_json(label_vocab_path)
+        logger.info('save label vocabulary...')
 
         return
 
@@ -325,20 +326,23 @@ class SLUDatasetBuilder(DatasetBuilder):
         label_vocab_path = self._dataset_dir / TAG_VOCAB_FILENAME
         class_vocab_path = self._dataset_dir / CLASS_VOCAB_FILENAME
 
-        logger.info('build input text vocabulary...')
-        self._input_vocab = Vocabulary(max_size=max_size, min_freq=min_freq, bos_token=None, eos_token=None)
-        logger.info('build label vocabulary...')
-        self._label_vocab = Vocabulary(unknown_token=None)
-        logger.info('build class vocabulary...')
-        self._class_vocab = Vocabulary(unknown_token=None, padding_token=None, bos_token=None, eos_token=None)
+        if self._input_vocab is None:
+            logger.info('build input text vocabulary...')
+            self._input_vocab = Vocabulary(max_size=max_size, min_freq=min_freq, bos_token=None, eos_token=None)
+            input_data = self._splitify(self._raw_input)
+            self._input_vocab.fit(input_data)
 
-        input_data = self._splitify(self._raw_input)
-        label_data = self._splitify(self._raw_label)
-        class_data = self._raw_class
+        if self._label_vocab is None:
+            logger.info('build label vocabulary...')
+            self._label_vocab = Vocabulary(unknown_token=None)
+            label_data = self._splitify(self._raw_label)
+            self._label_vocab.fit(label_data)
 
-        self._input_vocab.fit(input_data)
-        self._label_vocab.fit(label_data)
-        self._class_vocab.fit(class_data)
+        if self._class_vocab is None:
+            logger.info('build class vocabulary...')
+            self._class_vocab = Vocabulary(unknown_token=None, padding_token=None, bos_token=None, eos_token=None)
+            class_data = self._raw_class
+            self._class_vocab.fit(class_data)
 
         logger.info('save input text vocabulary...')
         self._input_vocab.to_json(input_vocab_path)
@@ -406,13 +410,16 @@ class SLUDatasetBuilder(DatasetBuilder):
 
         return instant_data_loader
 
-    def build_data_loader(self, batch_size, limit_pad_len, enable_length=True, valid_batch_size=None):
+    def build_data_loader(self, batch_size, limit_pad_len, valid_batch_size=1, enable_length=True):
         logger.info('now get training dataloader object...')
         train_dataset = JointClsNTagDatasetFromJSONFile(self._train_data_path[0],
                                                         limit_pad_len=limit_pad_len,
                                                         enable_length=enable_length)
+        if valid_batch_size <= 1:
+            limit_pad_len = None
 
-        valid_dataset = JointClsNTagDatasetFromJSONFile(self._valid_data_path[0])
+        valid_dataset = JointClsNTagDatasetFromJSONFile(self._valid_data_path[0],
+                                                        limit_pad_len=limit_pad_len)
 
         train_data_loader = DataLoader(train_dataset,
                                        batch_size=batch_size,
@@ -421,7 +428,7 @@ class SLUDatasetBuilder(DatasetBuilder):
                                        drop_last=True)
 
         valid_data_loader = DataLoader(valid_dataset,
-                                       batch_size=1)
+                                       batch_size=valid_batch_size)
 
         return train_data_loader, valid_data_loader
 
@@ -443,6 +450,9 @@ class WordSegmentationDatasetBuilder(NERDatasetBuilder):
 
         self._dataset_dir = dataset_dir
         self._has_resource = False
+
+        if input_vocab is not None:
+            logger.info('use existing input vocabulary.')
 
         if os.path.isdir(self._dataset_dir):
             try:

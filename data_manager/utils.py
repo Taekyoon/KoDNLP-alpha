@@ -6,14 +6,21 @@ from data_manager.vocab import Vocabulary
 
 
 def create_builder(type, dataset_configs, deploy_path='./tmp'):
+    if 'vocab_path' in dataset_configs:
+        input_vocab = load_vocab_file(dataset_configs['vocab_path'])
+    else:
+        input_vocab = None
+
     if type == 'ner':
         builder = NERDatasetBuilder(Path(dataset_configs['input']), Path(dataset_configs['label']),
-                                    dataset_dir=deploy_path)
+                                    dataset_dir=deploy_path, input_vocab=input_vocab)
     elif type == 'word_segment':
-        builder = WordSegmentationDatasetBuilder(Path(dataset_configs['input']), dataset_dir=deploy_path)
+        builder = WordSegmentationDatasetBuilder(Path(dataset_configs['input']), dataset_dir=deploy_path,
+                                                 input_vocab=input_vocab)
     elif type == 'slu':
         builder = SLUDatasetBuilder(Path(dataset_configs['input']), Path(dataset_configs['slots']),
-                                    Path(dataset_configs['intents']), dataset_dir=deploy_path)
+                                    Path(dataset_configs['intents']), dataset_dir=deploy_path,
+                                    input_vocab=input_vocab)
     else:
         raise NotImplementedError()
 
@@ -27,10 +34,14 @@ def create_builder(type, dataset_configs, deploy_path='./tmp'):
     return builder
 
 
-def load_vocab(type, load_path):
+def load_vocab_file(file_path):
+    return Vocabulary().from_json(file_path)
+
+
+def load_vocab_dir(type, dir_path):
     if type == 'ner' or type == 'word_segment':
-        input_vocab_path = load_path / 'dataset' / INPUT_VOCAB_FILENAME
-        label_vocab_path = load_path / 'dataset' / TAG_VOCAB_FILENAME
+        input_vocab_path = dir_path / 'dataset' / INPUT_VOCAB_FILENAME
+        label_vocab_path = dir_path / 'dataset' / TAG_VOCAB_FILENAME
 
         input_vocab = Vocabulary()
         label_vocab = Vocabulary()
@@ -42,9 +53,9 @@ def load_vocab(type, load_path):
                'label_vocab': label_vocab}
 
     elif type == 'slu':
-        input_vocab_path = load_path / 'dataset' / INPUT_VOCAB_FILENAME
-        label_vocab_path = load_path / 'dataset' / TAG_VOCAB_FILENAME
-        class_vocab_path = load_path / 'dataset' / CLASS_VOCAB_FILENAME
+        input_vocab_path = dir_path / 'dataset' / INPUT_VOCAB_FILENAME
+        label_vocab_path = dir_path / 'dataset' / TAG_VOCAB_FILENAME
+        class_vocab_path = dir_path / 'dataset' / CLASS_VOCAB_FILENAME
 
         input_vocab = Vocabulary()
         label_vocab = Vocabulary()

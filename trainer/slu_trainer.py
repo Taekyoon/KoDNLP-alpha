@@ -1,20 +1,21 @@
-from trainer.trainer import Trainer
 from configs.constants import RANDOM_SEED
 
+import gc
+
+import logging
 import torch
 from torch.utils.tensorboard import SummaryWriter
-import numpy as np
+
 from tqdm import tqdm
 from pathlib import Path
 
-import logging
-
+from trainer.trainer import Trainer
 from trainer.metrics import f1, acc
 
 logger = logging.getLogger(__name__)
 
 
-class SLUModelTrainer(Trainer):
+class JointSequenceTagAndClassModelTrainer(Trainer):
     def __init__(self,
                  train_data_loader,
                  valid_data_loader,
@@ -64,14 +65,13 @@ class SLUModelTrainer(Trainer):
         logger.info('eval labels: {}'.format(self._eval_labels))
 
     def _eval(self):
-        score = 0.
+        score, tag_f1_score, class_acc_score = 0., 0., 0.
 
         logger.info('now evaluating...')
 
         self._model.eval()
 
-        accumulated_tag_preds, accumulated_tag_targets = [], []
-        accumulated_class_preds, accumulated_class_targets = [], []
+        f1_score_failure_cnt, acc_score_failure_cnt = 0, 0
 
         for step, sampled_batch in tqdm(enumerate(self._valid_data_loader), desc='valid steps',
                                         total=len(self._valid_data_loader)):
@@ -82,19 +82,26 @@ class SLUModelTrainer(Trainer):
             class_batch = sampled_batch['intents'].to(self._device)
 
             pred_score, tag_seq, class_prob = self._model(input_batch)
-            score += torch.mean(pred_score)
+            score += torch.mean(pred_score).item()
 
-            accumulated_tag_preds.append(tag_seq.cpu().numpy())
-            accumulated_tag_targets.append(target_batch.cpu().numpy())
+            try:
+                tag_f1_score += f1(tag_seq.cpu().detach().numpy(), target_batch.cpu().detach().numpy(),
+                                   labels=self._eval_labels)
+            except Exception as e:
+                f1_score_failure_cnt += 1
+                logger.warning("Error message while calculating tag f1 score: {}".format(e))
+                logger.info('tag f1 score failure {} times'.format(f1_score_failure_cnt))
 
-            accumulated_class_preds.append(torch.argmax(class_prob, dim=-1).cpu().numpy())
-            accumulated_class_targets.append(class_batch.cpu().numpy())
+            try:
+                class_acc_score += acc(torch.argmax(class_prob, dim=-1).cpu().numpy(), class_batch.cpu().detach().numpy())
+            except Exception as e:
+                acc_score_failure_cnt += 1
+                logger.error("Error message while calculating class acc score: {}".format(e))
+                logger.info('class acc score failure {} times'.format(acc_score_failure_cnt))
         else:
             score = score / (step + 1)
-            tag_f1_score = f1(np.concatenate(accumulated_tag_preds, axis=None),
-                              np.concatenate(accumulated_tag_targets, axis=None), labels=self._eval_labels)
-            class_acc_score = acc(np.concatenate(accumulated_class_preds, axis=None),
-                                  np.concatenate(accumulated_class_targets, axis=None))
+            tag_f1_score = tag_f1_score / (step + 1 - f1_score_failure_cnt)
+            class_acc_score = class_acc_score / (step + 1 - acc_score_failure_cnt)
 
         return score, tag_f1_score, class_acc_score
 
@@ -157,7 +164,7 @@ class SLUModelTrainer(Trainer):
 
                 filename = 'checkpoint_' + str(total_steps) + '_model.pkl'
                 self._save_model(self._model, self._deploy_path / 'checkpoint' / filename)
-
+                gc.collect()
         else:
             logger.info('epoch {} is done!'.format(epoch + 1))
             val_score, val_tag_f1, val_class_acc = self._eval()
@@ -183,5 +190,5 @@ class SLUModelTrainer(Trainer):
                                                                                          val_class_acc))
             logger.info('current best tag f1: {:.3f}'.format(self.best_tag_val_f1_score))
             logger.info('current best class acc: {:.3f}'.format(self.best_class_val_acc_score))
-
+            gc.collect()
             return tr_loss / (step + 1)

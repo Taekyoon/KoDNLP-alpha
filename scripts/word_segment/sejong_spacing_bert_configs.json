@@ -1,10 +1,12 @@
 {
   "type": "word_segment",
   "gpu_device": 0,
+  "load_model": "./tmp/model/bert/pytorch_model.bin",
+  "load_model_strict": false,
   "dataset": {
     "name": "sejong_spacing",
-    "vocab_path": "",
     "train": {
+      "vocab_path": "./corpus/bert_vocab.json",
       "input": "./corpus/sejong_raw/train.txt"
     },
     "test": {
@@ -12,23 +14,20 @@
     }
   },
   "deploy": {
-    "path": "./tmp/sejong_spacing_transformer_epoch_10,batch_128_len_100"
+    "path": "./tmp/sejong_bert_spacing_10_epochs_batch_128_len_128"
   },
   "model": {
     "type": "bert",
     "parameters": {
-      "word_embedding_dims": 32,
-      "hidden_dims": 64,
-      "head_size": 8,
-      "layer_size": 4
-    },
-    "config_path": ""
+      "config_path": "./configs/models/bert_config.json"
+    }
   },
   "train": {
-    "epochs": 10,
+    "learning_rate": 3e-5,
+    "epochs": 4,
     "eval_steps": 5000,
-    "eval_batch_size": 512,
-    "batch_size": 128,
-    "sequence_length": 100
+    "eval_batch_size": 16,
+    "batch_size": 32,
+    "sequence_length": 200
   }
 }
