@@ -28,14 +28,14 @@ class BiLSTMEncoder(nn.Module):
 
 
 class LSTMDecoder(nn.Module):
-    def __init__(self, vocab_size, embedding_size, hidden_size, pad_idx=0, num_layers=1, dropout=0.):
+    def __init__(self, vocab_size, embedding_size, encoder_state_size, hidden_size, pad_idx=0, num_layers=1, dropout=0.):
         super(LSTMDecoder, self).__init__()
         self.pad_idx = pad_idx
         self.num_layers = num_layers
         self.hidden_size = hidden_size
 
         self.embedding = Embedding(vocab_size, embedding_size, padding_idx=self.pad_idx)
-        self.decoder_cell = LSTMCell(embedding_size + hidden_size * 2, hidden_size, num_layers=num_layers,
+        self.decoder_cell = LSTMCell(embedding_size + encoder_state_size, hidden_size, num_layers=num_layers,
                                      dropout=dropout)
         self.output_linear = Linear(hidden_size, vocab_size)
 
