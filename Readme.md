@@ -1,4 +1,4 @@
-## Korean Deep NLP Framework (Ko-DNLP)
+## Korean Deep NLP Framework (KoDNLP)
 Placeholder
 
 ### Requirements
