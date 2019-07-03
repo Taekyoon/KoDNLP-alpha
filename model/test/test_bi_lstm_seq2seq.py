@@ -1,5 +1,5 @@
 import torch
-from model.seq2seq.bi_lstm_seq2seq import BiLSTMSeq2Seq, BiLSTMEncoder, BiLSTMDecoder
+from model.seq2seq.bi_lstm_seq2seq import BiLSTMSeq2Seq, BiLSTMEncoder, LSTMDecoder
 
 
 def test_train_bi_lstm_seq2seq():
@@ -9,7 +9,7 @@ def test_train_bi_lstm_seq2seq():
     hidden_size = 32
 
     encoder = BiLSTMEncoder(src_vocab_size, embedding_size, hidden_size)
-    decoder = BiLSTMDecoder(tgt_vocab_size, embedding_size, hidden_size)
+    decoder = LSTMDecoder(tgt_vocab_size, embedding_size, hidden_size * 2, hidden_size)
     seq2seq = BiLSTMSeq2Seq(encoder, decoder)
 
     inputs = torch.randint(0, src_vocab_size, (12, 20)).long()
@@ -27,7 +27,7 @@ def test_infer_bi_lstm_seq2seq():
     hidden_size = 32
 
     encoder = BiLSTMEncoder(src_vocab_size, embedding_size, hidden_size)
-    decoder = BiLSTMDecoder(tgt_vocab_size, embedding_size, hidden_size)
+    decoder = LSTMDecoder(tgt_vocab_size, embedding_size, hidden_size * 2, hidden_size)
     seq2seq = BiLSTMSeq2Seq(encoder, decoder)
 
     inputs = torch.randint(0, src_vocab_size, (1, 20)).long()

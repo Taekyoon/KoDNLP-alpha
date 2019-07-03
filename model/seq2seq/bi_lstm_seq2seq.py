@@ -4,7 +4,7 @@ import torch
 from torch import nn
 from torch.nn import Embedding, Linear, CrossEntropyLoss
 
-from model.modules.rnn import BiLSTM, BiLSTMCell
+from model.modules.rnn import BiLSTM, LSTMCell
 
 from configs.constants import RANDOM_SEED
 
@@ -27,17 +27,21 @@ class BiLSTMEncoder(nn.Module):
         return lstm_outputs, last_hidden
 
 
-class BiLSTMDecoder(nn.Module):
-    def __init__(self, vocab_size, embedding_size, hidden_size, pad_idx=0, num_layers=1, dropout=0.):
-        super(BiLSTMDecoder, self).__init__()
+class LSTMDecoder(nn.Module):
+    def __init__(self, vocab_size, embedding_size, encoder_state_size, hidden_size, pad_idx=0, num_layers=1, dropout=0.):
+        super(LSTMDecoder, self).__init__()
         self.pad_idx = pad_idx
+        self.num_layers = num_layers
+        self.hidden_size = hidden_size
 
         self.embedding = Embedding(vocab_size, embedding_size, padding_idx=self.pad_idx)
-        self.decoder_cell = BiLSTMCell(embedding_size, hidden_size, num_layers=num_layers, dropout=dropout)
-        self.output_linear = Linear(hidden_size * 2, vocab_size)
+        self.decoder_cell = LSTMCell(embedding_size + encoder_state_size, hidden_size, num_layers=num_layers,
+                                     dropout=dropout)
+        self.output_linear = Linear(hidden_size, vocab_size)
 
-    def forward(self, inputs: torch.Tensor, hidden_state: [torch.Tensor, torch.Tensor]):
+    def forward(self, inputs: torch.Tensor, encoder_state: torch.Tensor, hidden_state: [torch.Tensor, torch.Tensor]):
         emb_layer = self.embedding(inputs)
+        emb_layer = torch.cat([emb_layer, encoder_state], dim=-1)
         lstm_outputs, next_hidden_state = self.decoder_cell(emb_layer, hidden_state)
         outputs = self.output_linear(lstm_outputs)
 
@@ -45,7 +49,7 @@ class BiLSTMDecoder(nn.Module):
 
 
 class BiLSTMSeq2Seq(nn.Module):
-    def __init__(self, encoder: BiLSTMEncoder, decoder: BiLSTMDecoder, bos_idx=1, eos_idx=2, teacher_force_rate=0.7):
+    def __init__(self, encoder: BiLSTMEncoder, decoder: LSTMDecoder, bos_idx=1, eos_idx=2, teacher_force_rate=0.7):
         super(BiLSTMSeq2Seq, self).__init__()
 
         self.teacher_force_rate = teacher_force_rate
@@ -65,17 +69,19 @@ class BiLSTMSeq2Seq(nn.Module):
             raise ValueError('input batch size should be 1.')
 
         encoder_outputs, encoder_hidden = self.encoder(inputs)
-
-        decoder_hidden = encoder_hidden
+        encoder_state = torch.cat([*encoder_hidden[0]], dim=1).unsqueeze(1)
 
         decoder_input = torch.full((batch_size, 1), self.bos_idx).long()
+        h_0 = torch.zeros((self.decoder.num_layers, batch_size, self.decoder.hidden_size))
+        c_0 = torch.zeros((self.decoder.num_layers, batch_size, self.decoder.hidden_size))
+        decoder_hidden = (h_0, c_0)
         decoded_sequence = list()
 
         for i in range(max_seq_len):
             if decoder_input[:, 0] == self.eos_idx:
                 break
 
-            decoder_output, next_decoder_hidden = self.decoder(decoder_input, decoder_hidden)
+            decoder_output, next_decoder_hidden = self.decoder(decoder_input, encoder_state, decoder_hidden)
             decoded_label = torch.argmax(decoder_output, dim=-1)
             decoded_sequence.append(decoded_label)
 
@@ -92,17 +98,20 @@ class BiLSTMSeq2Seq(nn.Module):
         target_mask = targets.ne(self.decoder.pad_idx).float()
 
         encoder_outputs, encoder_hidden = self.encoder(inputs)
-        decoder_hidden = encoder_hidden
+        encoder_state = torch.cat([*encoder_hidden[0]], dim=1).unsqueeze(1)
 
         decoder_input = torch.full((batch_size, 1), self.bos_idx).long()
+        h_0 = torch.zeros((self.decoder.num_layers, batch_size, self.decoder.hidden_size))
+        c_0 = torch.zeros((self.decoder.num_layers, batch_size, self.decoder.hidden_size))
+        decoder_hidden = (h_0, c_0)
 
         loss = list()
 
-        for i in range(target_seq_len-1):
-            decoder_output, next_decoder_hidden = self.decoder(decoder_input, decoder_hidden)
+        for i in range(target_seq_len - 1):
+            decoder_output, next_decoder_hidden = self.decoder(decoder_input, encoder_state, decoder_hidden)
             decoded_label = torch.argmax(decoder_output, dim=-1).long()
 
-            step_loss = self.ce_loss(decoder_output.squeeze(1), targets[:, i+1])
+            step_loss = self.ce_loss(decoder_output.squeeze(1), targets[:, i + 1])
             loss.append(step_loss)
 
             decoder_input = targets[:, i].unsqueeze(-1) if self._teacher_force() else decoded_label
