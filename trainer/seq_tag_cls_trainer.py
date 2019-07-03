@@ -65,6 +65,7 @@ class JointSequenceTagAndClassModelTrainer(Trainer):
         logger.info('eval labels: {}'.format(self._eval_labels))
 
     def _eval(self):
+        gc.collect()
         score, tag_f1_score, class_acc_score = 0., 0., 0.
 
         logger.info('now evaluating...')

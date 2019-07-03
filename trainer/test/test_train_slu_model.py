@@ -1,7 +1,7 @@
 from pathlib import Path
 from data_manager.builder import SLUDatasetBuilder
 from model.joint_classifier_and_sequence_tagger.bilstm_crf import BilstmCRF
-from trainer.slu_trainer import JointSequenceTagAndClassModelTrainer
+from trainer.seq_tag_cls_trainer import JointSequenceTagAndClassModelTrainer
 
 
 def test_model_train_with_train_data():

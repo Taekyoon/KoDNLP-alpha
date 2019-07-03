@@ -8,7 +8,7 @@ from flask_cors import CORS
 
 from data_manager.bert_tokenization.utils import create_bert_tokenizer
 from data_manager.utils import load_vocab_dir
-from model.utils import create_crf_model
+from model.utils import create_model
 from postpro.ner import process_by_ner
 from utils import set_gpu_device, parse_args, load_json, load_model
 
@@ -85,7 +85,7 @@ def main(configs):
     if 'label_vocab' in vocabs:
         tag_vocab = vocabs['label_vocab']
 
-    model = create_crf_model(task_type, tag_vocab, model_configs)
+    model = create_model(task_type, tag_vocab, model_configs)
     model = load_model(best_model_path, model)
     model.eval()
 

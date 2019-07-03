@@ -3,7 +3,7 @@ from pathlib import Path
 
 from utils import parse_args, load_json, load_model, set_logging_config
 from data_manager.utils import create_builder
-from model.utils import create_crf_model
+from model.utils import create_model
 from trainer.utils import create_trainer
 from evaluator.utils import create_evaluator
 
@@ -33,7 +33,7 @@ def main(configs, test_only):
         tag_to_idx = data_builder.tag_to_idx
 
     if not test_only:
-        model = create_crf_model(task_type, tag_to_idx, model_configs)
+        model = create_model(task_type, tag_to_idx, model_configs)
         if 'load_model' in configs:
             logger.info('load model: {}'.format(configs['load_model']))
             if 'load_model_strict' in configs:
@@ -53,7 +53,7 @@ def main(configs, test_only):
 
         best_model_path = deploy_path / 'model' / 'best_val.pkl'
         logger.info('load the best model')
-        test_model = create_crf_model(task_type, tag_to_idx, model_configs)
+        test_model = create_model(task_type, tag_to_idx, model_configs)
         test_model = load_model(best_model_path, test_model)
         evaluator = create_evaluator(task_type, test_model, data_builder, test_dataset_configs,
                                      limit_len)

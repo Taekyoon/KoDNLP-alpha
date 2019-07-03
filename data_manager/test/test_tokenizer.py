@@ -1,4 +1,4 @@
-from data_manager.tokenizer import EumjeolTokenizer, KomoranTokenizer, MecabTokenizer
+from data_manager.tokenizer import SyllableTokenizer, KomoranTokenizer, MecabTokenizer
 
 
 def test_eunjeol_tokenizer():
@@ -7,7 +7,7 @@ def test_eunjeol_tokenizer():
                         "내일 날씨도 좋을까요",
                         "하루가 너무 좋습니다"]
 
-    eumjeol_tokenizer = EumjeolTokenizer()
+    eumjeol_tokenizer = SyllableTokenizer()
 
     tokenized_single_sent = eumjeol_tokenizer.tokenize(dummy_single_sent)
     tokenized_multi_sent = eumjeol_tokenizer.tokenize(dummy_multi_sent)

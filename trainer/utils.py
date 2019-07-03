@@ -1,7 +1,7 @@
 from configs.constants import PAD, START_TAG, STOP_TAG
 
 from trainer.seq_tag_trainer import SequenceTaggingModelTrainer
-from trainer.slu_trainer import JointSequenceTagAndClassModelTrainer
+from trainer.seq_tag_cls_trainer import JointSequenceTagAndClassModelTrainer
 
 
 def create_trainer(type, model, data_builder, train_configs, gpu_device=-1, deploy_path='./tmp'):

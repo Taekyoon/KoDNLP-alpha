@@ -6,11 +6,12 @@ from model.sequence_tagger.bert import BertTagger
 
 from model.joint_classifier_and_sequence_tagger.cnn_bilstm_crf import CNNBilstmCRF as CNNBilstmCRF_SLU
 from model.joint_classifier_and_sequence_tagger.bilstm_crf import BilstmCRF as BilstmCRF_SLU
+from model.joint_classifier_and_sequence_tagger.bert import BertJointTaggerAndClassifier
 
 from pytorch_pretrained_bert.modeling import BertConfig
 
 
-def create_crf_model(type, tag_to_idx, model_configs):
+def create_model(type, tag_to_idx, model_configs):
     model_type = model_configs['type']
     model_params = model_configs['parameters']
     if type == 'ner' or type == 'word_segment':
@@ -48,6 +49,9 @@ def create_crf_model(type, tag_to_idx, model_configs):
             model = CNNBilstmCRF_SLU(vocab_size, class_size, tag_to_idx, model_params['word_embedding_dims'],
                                      model_params['channel_dims'], model_params['conv_configs'],
                                      model_params['hidden_dims'])
+        elif model_type == 'bert':
+            bert_configs = BertConfig(model_params['config_path'])
+            model = BertJointTaggerAndClassifier(bert_configs, class_size, len(tag_to_idx))
         else:
             raise ValueError()
     else:

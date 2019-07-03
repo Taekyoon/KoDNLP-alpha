@@ -23,9 +23,9 @@ class Tokenizer(object):
         pass
 
 
-class EumjeolTokenizer(Tokenizer):
+class SyllableTokenizer(Tokenizer):
     def __init__(self):
-        super(EumjeolTokenizer, self).__init__()
+        super(SyllableTokenizer, self).__init__()
 
     def _operate(self, sent: str):
         unspaced_sent = sent.replace(' ', '')
