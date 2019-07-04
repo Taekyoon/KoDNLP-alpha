@@ -12,7 +12,7 @@
     },
     "test": {
       "limit_len": 150,
-      "input": "./corpus/sejong_wiki_raw/test.txt"
+      "input": "./corpus/sejong_literal_raw/test.txt"
     }
   },
   "deploy": {

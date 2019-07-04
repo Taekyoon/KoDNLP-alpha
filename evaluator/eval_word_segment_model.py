@@ -10,7 +10,10 @@ from prettytable import PrettyTable
 
 from data_manager.vocab import Vocabulary
 from prepro.common import unspacing, text_to_list
+from prepro.word_segment import labelize
 from postpro.word_segment import segment_word_by_tags
+
+from trainer.metrics import f1, acc
 
 from time import sleep
 
@@ -35,6 +38,9 @@ class WordSegmentModelEvaluator(object):
         self._device = torch.device('cpu')
 
         self._wer_score = None
+        self._corrected_sent_cnt = None
+        self._acc_score = None
+        self._f1_score = None
 
     def eval(self):
         logger.info('now evaluate!')
@@ -42,6 +48,10 @@ class WordSegmentModelEvaluator(object):
         self._model.eval()
 
         wer_score = 0.
+        acc_score = 0.
+        f1_score = 0.
+        corrected_sent_cnt = 0.
+
         score_failure_cnt = 0
 
         for step, text in tqdm(enumerate(self._dataset), desc='evaluation steps', total=len(self._dataset)):
@@ -59,6 +69,15 @@ class WordSegmentModelEvaluator(object):
                 # print('org: ', text.strip())
                 # print('prd: ', pred_text.strip())
                 wer_score += jiwer.wer(text.strip(), pred_text.strip())
+                if text.split() == pred_text.split():
+                    corrected_sent_cnt += 1
+
+                _, labels = labelize(text, bi_tags_only=True)
+                labels = [ch for ch in labels]
+                labeled_tag_seq = ' '.join(labeled_tag_seq).replace('E', 'I').replace('S', 'B').split()
+
+                acc_score += acc(labeled_tag_seq, labels)
+                f1_score += f1(labeled_tag_seq, labels, labels=['B', 'I'])
             except Exception as e:
                 score_failure_cnt += 1
                 logger.warning("Error message while calculating wer score: {}".format(e))
@@ -68,13 +87,22 @@ class WordSegmentModelEvaluator(object):
 
         else:
             wer_score = wer_score / (step + 1 - score_failure_cnt)
+            corrected_sent_cnt = corrected_sent_cnt / (step + 1 - score_failure_cnt)
+            acc_score = acc_score / (step + 1 - score_failure_cnt)
+            f1_score = f1_score / (step + 1 - score_failure_cnt)
 
         self._wer_score = wer_score
+        self._corrected_sent_cnt = corrected_sent_cnt
+        self._acc_score = acc_score
+        self._f1_score = f1_score
 
         logger.info('evaluation done!')
 
     def summary(self):
         table = PrettyTable(['Name', 'Score'])
-        table.add_row(['WER score', "{:.3f}".format(self._wer_score)])
+        table.add_row(['WER score', "{:.4f}".format(self._wer_score)])
+        table.add_row(['correct sentence rate', "{:.4f}".format(self._corrected_sent_cnt)])
+        table.add_row(['f1 score', "{:.4f}".format(self._f1_score)])
+        table.add_row(['acc score', "{:.4f}".format(self._acc_score)])
 
         return table

@@ -29,7 +29,7 @@ def text_request(query):
 
     if task_type == 'slu':
         if tokenizer_type == 'syllable_tokenizer':
-            tokens = [ch for ch in input_text.replace(' ', '$')]
+            tokens = [ch for ch in input_text.replace(' ', '')]
         elif tokenizer_type == 'bert_tokenizer':
             tokenizer = create_bert_tokenizer()
             tokens = tokenizer.tokenize(input_text)

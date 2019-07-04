@@ -4,6 +4,7 @@
   "dataset": {
     "name": "sejong_spacing",
     "train": {
+      "bi_tags_only": false,
       "vocab_min_freq": 10,
       "input": "./corpus/sejong_raw/train.txt"
     },
@@ -13,7 +14,7 @@
     }
   },
   "deploy": {
-    "path": "./tmp/sejong_spacing_epoch_50,batch_128_len_100"
+    "path": "./tmp/sejong_all_spacing_epoch_50,batch_128_len_100"
   },
   "model": {
     "type": "bilstm_crf",
@@ -23,8 +24,8 @@
     }
   },
   "train": {
-    "epochs": 10,
-    "eval_steps": -1,
+    "epochs": 50,
+    "eval_steps": 1000,
     "eval_batch_size": 512,
     "batch_size": 128,
     "sequence_length": 100

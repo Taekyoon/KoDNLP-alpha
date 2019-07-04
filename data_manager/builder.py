@@ -446,6 +446,7 @@ class WordSegmentationDatasetBuilder(NERDatasetBuilder):
                  file_type: str = 'text',
                  input_vocab: Vocabulary = None,
                  label_vocab: Vocabulary = None,
+                 bi_tags_only: bool = False,
                  dataset_dir: str = Path('./dataset/word_segment')):
 
         self._dataset_dir = dataset_dir
@@ -486,6 +487,7 @@ class WordSegmentationDatasetBuilder(NERDatasetBuilder):
             except:
                 raise ValueError()
 
+        self._bi_tags_only = bi_tags_only
         self._input_path = input_path
         self._file_type = file_type
 
@@ -512,7 +514,7 @@ class WordSegmentationDatasetBuilder(NERDatasetBuilder):
 
         for s in text_dataset:
             s = remove_multiple_spaces(s)
-            s, t = labelize(s)
+            s, t = labelize(s, bi_tags_only=self._bi_tags_only)
 
             s = ' '.join([ch for ch in s])
             t = ' '.join([ch for ch in t])

@@ -18,7 +18,6 @@ def create_evaluator(type, model, data_builder, dataset_configs, limit_len=None)
         evaluator = NERModelEvaluator(model,
                                       eval_data_loader)
     elif type == 'word_segment':
-        print(dataset_configs['input'])
         dataset = load_text(dataset_configs['input'])
         input_vocab = data_builder.input_vocab
         tag_vocab = data_builder.tag_vocab

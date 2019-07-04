@@ -1,7 +1,7 @@
 import re
 
 
-def labelize(text, remove_space=True):
+def labelize(text, remove_space=True, bi_tags_only=False):
     BEGIN, INSIDE, END, SINGLE, EXTRA = "B", "I", "E", "S", "X"
 
     def _is_space(_current_char):
@@ -44,6 +44,9 @@ def labelize(text, remove_space=True):
 
     if remove_space:
         original_text, labelized_text = original_text.replace(' ', ''), labelized_text.replace('X', '')
+
+    if bi_tags_only:
+        labelized_text = labelized_text.replace(END, INSIDE).replace(SINGLE, BEGIN)
 
     return original_text, labelized_text
 

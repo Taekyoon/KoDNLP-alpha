@@ -15,8 +15,11 @@ def create_builder(type, dataset_configs, deploy_path='./tmp'):
         builder = NERDatasetBuilder(Path(dataset_configs['input']), Path(dataset_configs['label']),
                                     dataset_dir=deploy_path, input_vocab=input_vocab)
     elif type == 'word_segment':
+        if 'bi_tags_only' not in dataset_configs:
+            dataset_configs['bi_tags_only'] = False
+
         builder = WordSegmentationDatasetBuilder(Path(dataset_configs['input']), dataset_dir=deploy_path,
-                                                 input_vocab=input_vocab)
+                                                 input_vocab=input_vocab, bi_tags_only=dataset_configs['bi_tags_only'])
     elif type == 'slu':
         builder = SLUDatasetBuilder(Path(dataset_configs['input']), Path(dataset_configs['slots']),
                                     Path(dataset_configs['intents']), dataset_dir=deploy_path,
