@@ -1,4 +1,5 @@
-## Prototype Project for Deep NLP
+## Korean Deep NLP Framework (KoDNLP)
+Placeholder
 
 ### Requirements
 
