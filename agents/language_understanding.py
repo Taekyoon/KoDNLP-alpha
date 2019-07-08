@@ -1,7 +1,5 @@
 import os
-
 import torch
-import numpy as np
 import logging
 from pathlib import Path
 
@@ -13,9 +11,8 @@ from trainer.utils import create_trainer
 from evaluator.utils import create_evaluator
 
 from data_manager.utils import load_vocab_dir
-from data_manager.dataset import pad_sequences
 from data_manager.tokenizer import SyllableTokenizer
-from postpro.word_segment import segment_word_by_tags
+from postpro.ner import process_by_ner
 
 from utils import load_model, load_json, register_logging
 
@@ -23,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 @register_logging
-class WordSegmentAgent(Agent):
+class SLUAgent(Agent):
     def __init__(self, configs_path):
         self.configs = load_json(configs_path)
 
@@ -38,7 +35,7 @@ class WordSegmentAgent(Agent):
         else:
             raise ValueError()
 
-        if not os.path.exists(self.deploy_path):
+        if not os.path.exists(self.deploy_path / 'dataset'):
             train_dataset_configs = self.configs['dataset']['train']
             create_builder(self.task_type, train_dataset_configs, deploy_path=self.deploy_path / 'dataset')
 
@@ -46,6 +43,9 @@ class WordSegmentAgent(Agent):
 
         if 'input_vocab' in vocabs:
             self.model_configs['vocab_size'] = len(vocabs['input_vocab'].word_to_idx)
+
+        if 'class_vocab' in vocabs:
+            self.model_configs['class_size'] = len(vocabs['class_vocab'].word_to_idx)
 
         if 'label_vocab' in vocabs:
             tag_vocab = vocabs['label_vocab']
@@ -58,9 +58,10 @@ class WordSegmentAgent(Agent):
         self.tokenizer = tokenizer
         self.vocab = vocabs['input_vocab']
         self.label = vocabs['label_vocab']
+        self.intent = vocabs['class_vocab']
         self.model = model
         self.preprocess = lambda x: x
-        self.postprocess = segment_word_by_tags
+        self.postprocess = process_by_ner
 
     def _run(self, query: str):
         prepro_query = self.preprocess(query)
@@ -69,15 +70,21 @@ class WordSegmentAgent(Agent):
 
         model_inputs = torch.Tensor([indiced_query]).long()
 
-        pred_score, tag_seq = self.model(model_inputs)
+        pred_score, tag_seq, intent_probs = self.model(model_inputs)
         labeled_tag_seq = self.label.to_tokens(tag_seq[0].tolist())
 
-        post_processed = self.postprocess(prepro_query, labeled_tag_seq)
+        intent = self.intent.to_tokens(torch.argmax(intent_probs, dim=-1).tolist())[0]
+        most_intent_prob = intent_probs.tolist()[0][torch.argmax(intent_probs, dim=-1).tolist()[0]]
+
+        slot_tags, slots = self.postprocess(prepro_query, labeled_tag_seq)
+        entities = [{'entity': tag, 'value': entity.replace(' ', '').replace('_', ' ').strip()} for tag, entity in
+                    zip(slot_tags, slots)]
 
         outputs = {'input': prepro_query,
                    'label': labeled_tag_seq,
-                   'sequence_score': pred_score.detach().numpy()[0],
-                   'output': post_processed}
+                   'sequence_score': float(pred_score.detach().numpy()),
+                   'intent': {'name': intent, 'prob': most_intent_prob},
+                   'slots': entities}
 
         return outputs
 
@@ -90,6 +97,9 @@ class WordSegmentAgent(Agent):
 
         if data_builder.word_to_idx:
             self.model_configs['vocab_size'] = len(data_builder.word_to_idx)
+
+        if data_builder.class_to_idx:
+            self.model_configs['class_size'] = len(data_builder.class_to_idx)
 
         if data_builder.tag_to_idx:
             tag_to_idx = data_builder.tag_to_idx
@@ -121,23 +131,3 @@ class WordSegmentAgent(Agent):
                                      limit_len)
         evaluator.eval()
         logger.info(evaluator.summary())
-
-    def lime_analyze(self, query):
-        input_list = list()
-        max_len = max([len(q.replace(' ', '')) for q in query])
-
-        for q in query:
-            prepro_query = q.replace(' ', '')
-            if len(prepro_query) > 0:
-                tokenized_query = self.tokenizer.tokenize(prepro_query).split()
-                indiced_query = self.vocab.to_indices(tokenized_query)
-                indiced_query = pad_sequences(indiced_query, max_len)
-            else:
-                indiced_query = np.full((1, max_len), 0)
-            input_list.append(torch.Tensor(indiced_query).long())
-
-        model_inputs = torch.stack(input_list, dim=0).squeeze(1)
-
-        pred_score = self.model.get_probs(model_inputs)
-
-        return pred_score[:, :, 3:].tolist()

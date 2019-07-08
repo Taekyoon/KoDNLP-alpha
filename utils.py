@@ -81,6 +81,17 @@ def set_logging_config(log_path):
     )
 
 
+def register_logging(cls):
+    def run_set_logging_config(configs_path):
+        configs = load_json(configs_path)
+        deploy_path = Path(configs['deploy']['path'])
+        set_logging_config(deploy_path)
+
+        return cls(configs_path)
+
+    return run_set_logging_config
+
+
 def set_gpu_device(gpu_id: str):
     # The GPU id to use, usually either "0" or "1"
     os.environ["CUDA_VISIBLE_DEVICES"] = gpu_id

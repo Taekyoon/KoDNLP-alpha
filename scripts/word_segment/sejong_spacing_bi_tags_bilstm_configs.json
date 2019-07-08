@@ -2,11 +2,11 @@
   "type": "word_segment",
   "gpu_device": 0,
   "last_train_steps": 328000,
-  "load_model": "./tmp/sejong_all_spacing_epoch_50,batch_128_len_100/model/checkpoint/100_epoch_last_checkpoint_model.pkl",
+  "load_model": "./tmp/sejong_all_bi_tags_spacing_epoch_50,batch_128_len_100/model/checkpoint/100_epoch_last_checkpoint_model.pkl",
   "dataset": {
     "name": "sejong_spacing",
     "train": {
-      "bi_tags_only": false,
+      "bi_tags_only": true,
       "vocab_min_freq": 10,
       "input": "./corpus/sejong_raw/train.txt"
     },
@@ -16,7 +16,7 @@
     }
   },
   "deploy": {
-    "path": "./tmp/sejong_all_spacing_epoch_50,batch_128_len_100"
+    "path": "./tmp/sejong_all_bi_tags_spacing_epoch_50,batch_128_len_100"
   },
   "model": {
     "type": "bilstm_crf",

@@ -1,5 +1,7 @@
 import torch
 import torch.nn as nn
+from torch.nn import functional as F
+
 from model.modules.rnn import BiLSTM, CRF
 from configs.constants import START_TAG, STOP_TAG
 
@@ -29,10 +31,19 @@ class BilstmCRF(nn.Module):
         score, path = self._crf.decode(emissions, mask=masking)
         return score, path
 
-    def loss(self, x: torch.Tensor, y:torch.Tensor) -> torch.Tensor:
+    def loss(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         masking = x.ne(self._pad_idx).float()
         fmap = self._embedding(x)
         hiddens, _ = self._bilstm(fmap, masking)
         emissions = self._fc(hiddens)
         nll = self._crf(emissions, y, mask=masking)
         return nll
+
+    def get_probs(self, x: torch.Tensor) -> Tuple[torch.tensor, torch.tensor]:
+        masking = x.ne(self._pad_idx).float()
+        fmap = self._embedding(x)
+        hiddens, _ = self._bilstm(fmap, masking)
+        emissions = self._fc(hiddens)
+        probs = F.softmax(emissions[:, :, 3:], dim=-1)
+
+        return probs.cpu().detach().numpy()
