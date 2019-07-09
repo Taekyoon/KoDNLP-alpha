@@ -1,11 +1,16 @@
 import os
 
 import torch
-import numpy as np
 import logging
 from pathlib import Path
 
+from eli5.lime import TextExplainer
+from eli5.lime.samplers import MaskingTextSampler
+from eli5.formatters.html import format_as_html
+
 from agents import Agent
+
+from configs.constants import UNK, RANDOM_SEED
 
 from data_manager.utils import create_builder
 from model.utils import create_model
@@ -20,6 +25,27 @@ from postpro.word_segment import segment_word_by_tags
 from utils import load_model, load_json, register_logging
 
 logger = logging.getLogger(__name__)
+
+
+class NERExplainerGenerator(object):
+    def __init__(self, model, word2idx, max_len):
+        self.model = model
+        self.word2idx = word2idx
+        self.max_len = max_len
+
+    def _preprocess(self, texts):
+        X = [[self.word2idx.get(w, self.word2idx[UNK]) for w in t.split()]
+             for t in texts]
+        X = pad_sequences(X, self.max_len)
+        return torch.Tensor(X).long()
+
+    def get_predict_function(self, word_index):
+        def predict_func(texts):
+            X = self._preprocess(texts)
+            p = self.model.get_probs(X)
+            return p[:, word_index, :]
+
+        return predict_func
 
 
 @register_logging
@@ -122,22 +148,70 @@ class WordSegmentAgent(Agent):
         evaluator.eval()
         logger.info(evaluator.summary())
 
-    def lime_analyze(self, query):
-        input_list = list()
-        max_len = max([len(q.replace(' ', '')) for q in query])
+    def _lime_analyze(self, query, indicies, max_len, max_replace, top_targets=None):
+        model = self.model
+        vocab = self.vocab.word_to_idx
+        label = self.label.word_to_idx
+        prepro_query = self.preprocess(query)
 
-        for q in query:
-            prepro_query = q.replace(' ', '')
-            if len(prepro_query) > 0:
-                tokenized_query = self.tokenizer.tokenize(prepro_query).split()
-                indiced_query = self.vocab.to_indices(tokenized_query)
-                indiced_query = pad_sequences(indiced_query, max_len)
-            else:
-                indiced_query = np.full((1, max_len), 0)
-            input_list.append(torch.Tensor(indiced_query).long())
+        explainer_generator = NERExplainerGenerator(model, vocab, max_len)
 
-        model_inputs = torch.stack(input_list, dim=0).squeeze(1)
+        sampler = MaskingTextSampler(
+            replacement=UNK,
+            max_replace=max_replace,
+            token_pattern=None,
+            bow=False
+        )
 
-        pred_score = self.model.get_probs(model_inputs)
+        explainer_list = list()
+        for i in indicies:
+            predict_fn = explainer_generator.get_predict_function(i)
 
-        return pred_score[:, :, 3:].tolist()
+            te = TextExplainer(
+                sampler=sampler,
+                position_dependent=True,
+                random_state=RANDOM_SEED,
+            )
+
+            te.fit(' '.join(prepro_query), predict_fn)
+
+            pred_explain = te.explain_prediction(target_names=[l for l in label][3:], top_targets=top_targets)
+            explainer_list.append(pred_explain)
+
+        return explainer_list
+
+    def get_lime_analyze_as_html(self, query, indicies, max_len=50, max_replace=0.7, top_targets=None):
+        query = query.replace(' ', '')
+
+        for i in indicies:
+            if i >= len(query):
+                raise ValueError()
+
+        def build_query_info_html(query, index):
+            _html_format = ''
+            _html_format += '<p>' + 'query: ' + query + '</p><br>'
+            _html_format += '<p>' + 'index: ' + str(index) + '</p><br>'
+            _html_format += '<p>' + 'char: ' + query[index] + '</p><br>'
+
+            return _html_format
+
+        explainers = self._lime_analyze(query, indicies, max_len, max_replace, top_targets=top_targets)
+        html_format = ''
+        html_format += '<div>'
+
+        for i, e in zip(indicies, explainers):
+            html_format += '<table class="table"><tr>'
+            html_format += '<td><div>' + build_query_info_html(query, i) + '</div></td>'
+            html_format += '<td><div>' + format_as_html(e).replace('\n', '').replace(' ', '') + '</div></td>'
+            html_format += '</tr></table>'
+            html_format += '<hr>'
+
+        html_format += '</div>'
+
+        return html_format
+
+    def get_lime_analyze_as_object(self, query, indicies, max_len=50, max_replace=0.7, top_targets=None):
+        query = query.replace(' ', '')
+        explainers = self._lime_analyze(query, indicies, max_len, max_replace, top_targets=top_targets)
+
+        return explainers
