@@ -1,0 +1,38 @@
+{
+  "type": "slu",
+  "gpu_device": -1,
+  "tokenizer": "space_tokenizer",
+  "load_model": "./tmp/dstc_initial_test/model/checkpoint/checkpoint_4200_model.pkl",
+  "dataset": {
+    "name": "dstc",
+    "train": {
+      "vocab_min_freq": 5,
+      "input": "./corpus/dstc/train/input.txt",
+      "slots": "./corpus/dstc/train/label.txt",
+      "intents": "./corpus/dstc/train/intent.txt"
+    },
+    "test": {
+      "input": "./corpus/dstc/test/input.txt",
+      "slots": "./corpus/dstc/test/label.txt",
+      "intents": "./corpus/dstc/test/intent.txt"
+    }
+  },
+  "deploy": {
+    "path": "./tmp/dstc_initial_test"
+  },
+  "model": {
+    "type": "bilstm_crf",
+    "parameters": {
+      "word_embedding_dims": 64,
+      "hidden_dims": 128,
+      "lstm_num_layers": 1,
+      "lstm_dropout": 0.5
+    }
+  },
+  "train": {
+    "epochs": 25,
+    "eval_steps": 600,
+    "batch_size": 16,
+    "sequence_length": 30
+  }
+}

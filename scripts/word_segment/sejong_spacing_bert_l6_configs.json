@@ -28,7 +28,7 @@
     "learning_rate": 3e-5,
     "epochs": 20,
     "eval_steps": 5000,
-    "eval_batch_size": 64,
+    "eval_batch_size": 32,
     "batch_size": 32,
     "sequence_length": 200
   }

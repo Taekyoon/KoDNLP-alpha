@@ -103,7 +103,9 @@ class WordSegmentAgent(Agent):
         outputs = {'input': prepro_query,
                    'label': labeled_tag_seq,
                    'sequence_score': pred_score.detach().numpy()[0],
-                   'output': post_processed}
+                   'output': post_processed,
+                   'segment_pos': [i for i, x in enumerate(labeled_tag_seq) if x == 'B']
+                   }
 
         return outputs
 
@@ -202,7 +204,7 @@ class WordSegmentAgent(Agent):
         for i, e in zip(indicies, explainers):
             html_format += '<table class="table"><tr>'
             html_format += '<td><div>' + build_query_info_html(query, i) + '</div></td>'
-            html_format += '<td><div>' + format_as_html(e).replace('\n', '').replace(' ', '') + '</div></td>'
+            html_format += '<td><div>' + format_as_html(e).replace('\n', '') + '</div></td>'
             html_format += '</tr></table>'
             html_format += '<hr>'
 

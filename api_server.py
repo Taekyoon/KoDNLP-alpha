@@ -54,7 +54,9 @@ def text_request(query):
 
         raws = {'slot_tags': labeled_tag_seq, 'tokenized_text': ' '.join(tokens)}
 
-        json_item = {'intent': intent, 'slots': entities, 'raws': raws}
+        labels = {'intent': vocabs['class_vocab'].idx_to_word,
+                  'slots': list(set([v.split('-')[-1] for v in vocabs['label_vocab'].idx_to_word[4:]]))}
+        json_item = {'intent': intent, 'slots': entities, 'raws': raws, 'labels': labels}
     else:
         raise NotImplementedError()
 

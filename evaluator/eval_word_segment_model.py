@@ -74,8 +74,8 @@ class WordSegmentModelEvaluator(object):
 
                 _, labels = labelize(text, bi_tags_only=True)
                 labels = [ch for ch in labels]
-                labeled_tag_seq = ' '.join(labeled_tag_seq).replace('E', 'I').replace('S', 'B').split()
-
+                labeled_tag_seq = ' '.join(labeled_tag_seq).replace('E', 'I').replace('S', 'B').replace('<pad>',
+                                                                                                        'I').split()
                 acc_score += acc(labeled_tag_seq, labels)
                 f1_score += f1(labeled_tag_seq, labels, labels=['B', 'I'])
             except Exception as e:
@@ -83,7 +83,6 @@ class WordSegmentModelEvaluator(object):
                 logger.warning("Error message while calculating wer score: {}".format(e))
                 logger.info('wer score failure {} times'.format(score_failure_cnt))
                 raise ValueError()
-            # sleep(0.7)
 
         else:
             wer_score = wer_score / (step + 1 - score_failure_cnt)
