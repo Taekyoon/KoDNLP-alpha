@@ -34,8 +34,13 @@ class NERExplainerGenerator(object):
         self.max_len = max_len
 
     def _preprocess(self, texts):
-        X = [[self.word2idx.get(w, self.word2idx[UNK]) for w in t.split()]
-             for t in texts]
+        if UNK in self.word2idx:
+            X = [[self.word2idx.get(w, self.word2idx[UNK]) for w in t.split()]
+                 for t in texts]
+        else:
+            X = [[self.word2idx.get(w, self.word2idx['[UNK]']) for w in t.split()]
+                 for t in texts]
+
         X = pad_sequences(X, self.max_len)
         return torch.Tensor(X).long()
 
@@ -100,9 +105,11 @@ class WordSegmentAgent(Agent):
 
         post_processed = self.postprocess(prepro_query, labeled_tag_seq)
 
+        pred_score = pred_score.detach().numpy()
+
         outputs = {'input': prepro_query,
                    'label': labeled_tag_seq,
-                   'sequence_score': pred_score.detach().numpy()[0],
+                   'sequence_score': pred_score,
                    'output': post_processed,
                    'segment_pos': [i for i, x in enumerate(labeled_tag_seq) if x == 'B']
                    }

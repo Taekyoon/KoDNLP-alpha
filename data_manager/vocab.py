@@ -11,6 +11,8 @@ Vocabulary = NewType('Vocabulary', object)
 
 logger = logging.getLogger(__name__)
 
+l = list()
+
 
 class Vocabulary(object):
     def __init__(self,

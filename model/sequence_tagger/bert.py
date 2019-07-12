@@ -1,6 +1,7 @@
 import torch
 
 import torch.nn as nn
+from torch.nn import functional as F
 from pytorch_pretrained_bert.modeling import BertPreTrainedModel, BertModel
 
 from typing import Tuple
@@ -69,3 +70,20 @@ class BertTagger(BertPreTrainedModel):
         nll = torch.mean(nll)
 
         return nll
+
+    def get_probs(self, x: torch.Tensor) -> Tuple[torch.tensor, torch.tensor]:
+        batch_size = x.size(0)
+        cls = torch.full((batch_size, 1), self._cls_idx).to(self.device).long()
+        x = torch.cat([x, cls], dim=-1)
+
+        masking = x.ne(self._pad_idx)
+
+        encoder_layer, _ = self.bert(x, attention_mask=masking, output_all_encoded_layers=False)
+        encoder_layer = encoder_layer[:, 1:]
+
+        dense_layer = self.dense(encoder_layer)
+        dense_layer = self.activation(dense_layer)
+        emissions = self.dense_2(dense_layer)
+        probs = F.softmax(emissions[:, :, 3:], dim=-1)
+
+        return probs.cpu().detach().numpy()
