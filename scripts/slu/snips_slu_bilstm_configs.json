@@ -17,7 +17,7 @@
     }
   },
   "deploy": {
-    "path": "./tmp/slu_initial_test"
+    "path": "./tmp/slu_initial_test_1"
   },
   "model": {
     "type": "bilstm_crf",

@@ -2,7 +2,7 @@
   "type": "slu",
   "gpu_device": -1,
   "tokenizer": "space_tokenizer",
-  "load_model": "./tmp/dstc_initial_test/model/checkpoint/checkpoint_4200_model.pkl",
+  "load_model": "./tmp/dstc_initial_test/model/best_val.pkl",
   "dataset": {
     "name": "dstc",
     "train": {
@@ -31,7 +31,7 @@
   },
   "train": {
     "epochs": 25,
-    "eval_steps": 600,
+    "eval_steps": 1,
     "batch_size": 16,
     "sequence_length": 30
   }

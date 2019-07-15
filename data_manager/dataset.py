@@ -126,3 +126,63 @@ def pad_sequences(dataset, limit_len, pad_value=0):
             padded_sequences[i, :len_inst] = np.array(inst[:len_inst])
 
     return padded_sequences
+
+
+class SequencePairDatasetFromJSONFile(Dataset):
+    def __init__(self,
+                 json_path: str,
+                 enable_length: bool = True,
+                 limit_src_pad_len: int = None,
+                 limit_tgt_pad_len: int = None,
+                 pad_value: int = 0) -> None:
+        dataset = json.load(open(json_path, 'rb'))
+
+        self._sources = dataset['sources']
+        self._targets = dataset['targets']
+
+        self.enable_length = enable_length
+        self.limit_src_pad_len = limit_src_pad_len
+        self.limit_tgt_pad_len = limit_tgt_pad_len
+        self.pad_value = pad_value
+
+        return
+
+    def __len__(self) -> int:
+        len_dataset = len(self._sources)
+
+        return len_dataset
+
+    def __getitem__(self, idx: int) -> Tuple[Tensor, Tensor]:
+        sampled_instances = dict()
+        sampled_instances['sources'] = dict()
+
+        sampled_sources = self._sources[idx]
+        sampled_targets = self._targets[idx]
+
+        if self.enable_length:
+            if isinstance(sampled_sources[0], list):
+                sources_length = [len(inst) for inst in sampled_sources]
+            else:
+                sources_length = [len(sampled_sources)]
+
+            if isinstance(sampled_targets[0], list):
+                targets_length = [len(inst) for inst in sampled_targets]
+            else:
+                targets_length = [len(sampled_targets)]
+
+            if self.limit_src_pad_len is not None:
+                sources_length = [l if l < self.limit_src_pad_len else self.limit_src_pad_len for l in sources_length]
+            sampled_instances['sources']['length'] = Tensor(sources_length).long()
+
+            if self.limit_tgt_pad_len is not None:
+                targets_length = [l if l < self.limit_tgt_pad_len else self.limit_tgt_pad_len for l in targets_length]
+            sampled_instances['targets']['length'] = Tensor(targets_length).long()
+
+        if self.limit_src_pad_len is not None:
+            sampled_sources = pad_sequences(sampled_sources, self.limit_src_pad_len, self.pad_value)
+            sampled_targets = pad_sequences(sampled_targets, self.limit_tgt_pad_len, self.pad_value)
+
+        sampled_instances['sources']['value'] = Tensor(sampled_sources).long()
+        sampled_instances['targets']['value'] = Tensor(sampled_targets).long()
+
+        return sampled_instances

@@ -8,10 +8,12 @@ from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader
 
 from configs.constants import INPUT_VOCAB_FILENAME, TAG_VOCAB_FILENAME, CLASS_VOCAB_FILENAME, \
-    TRAIN_DATASET_FILENAME, VALIDATION_DATASET_FILENAME, INSTANT_DATASET_FILENAME, RANDOM_SEED
+    TRAIN_DATASET_FILENAME, VALIDATION_DATASET_FILENAME, INSTANT_DATASET_FILENAME, RANDOM_SEED, SRC_VOCAB_FILENAME, \
+    TGT_VOCAB_FILENAME
 
 from data_manager.vocab import Vocabulary
-from data_manager.dataset import SequenceTagDatasetFromJSONFile, JointClsNTagDatasetFromJSONFile
+from data_manager.dataset import SequenceTagDatasetFromJSONFile, JointClsNTagDatasetFromJSONFile, \
+    SequencePairDatasetFromJSONFile
 
 from utils import make_dir_if_not_exist, load_text
 
@@ -523,3 +525,181 @@ class WordSegmentationDatasetBuilder(NERDatasetBuilder):
             labels.append(t)
 
         return inputs, labels
+
+
+class SequencePairDatasetBuilder(DatasetBuilder):
+    def __init__(self,
+                 src_path: Path,
+                 tgt_path: Path,
+                 file_type: str = 'text',
+                 src_vocab: Vocabulary = None,
+                 tgt_vocab: Vocabulary = None,
+                 dataset_dir: str = Path('./dataset/ner')):
+
+        self._dataset_dir = dataset_dir
+        self._has_resource = False
+
+        if os.path.isdir(self._dataset_dir):
+            try:
+                train_data_save_path = self._dataset_dir / TRAIN_DATASET_FILENAME
+                valid_data_save_path = self._dataset_dir / VALIDATION_DATASET_FILENAME
+
+                src_vocab_path = self._dataset_dir / SRC_VOCAB_FILENAME
+                tgt_vocab_path = self._dataset_dir / TGT_VOCAB_FILENAME
+
+                if not os.path.exists(train_data_save_path):
+                    raise FileNotFoundError()
+
+                if not os.path.exists(valid_data_save_path):
+                    raise FileNotFoundError()
+
+                if not os.path.exists(src_vocab_path):
+                    raise FileNotFoundError()
+
+                if not os.path.exists(tgt_vocab_path):
+                    raise FileNotFoundError()
+
+                self._src_vocab = Vocabulary().from_json(src_vocab_path)
+                self._tgt_vocab = Vocabulary().from_json(tgt_vocab_path)
+
+                self._train_data_path = [train_data_save_path]
+                self._valid_data_path = [valid_data_save_path]
+
+                self._has_resource = True
+
+                return
+            except:
+                raise ValueError()
+
+        self._src_path = src_path
+        self._tgt_path = tgt_path
+        self._file_type = file_type
+
+        if file_type == 'text':
+            self._raw_src = self._load_text(self._src_path)
+            self._raw_tgt = self._load_text(self._tgt_path)
+        else:
+            raise NotImplementedError()
+
+        self._src_vocab = src_vocab
+        self._tgt_vocab = tgt_vocab
+
+        self._train_data_path = list()
+        self._valid_data_path = list()
+
+        self._build_dataset_dir()
+
+    def build_vocabulary(self,
+                         max_size: int = None,
+                         min_freq: int = 1) -> None:
+        if self._has_resource:
+            return
+
+        src_vocab_path = self._dataset_dir / SRC_VOCAB_FILENAME
+        tgt_vocab_path = self._dataset_dir / TGT_VOCAB_FILENAME
+
+        if self._src_vocab is None:
+            logger.info('build source text vocabulary...')
+            self._src_vocab = Vocabulary(max_size=max_size, min_freq=min_freq, bos_token=None, eos_token=None)
+            src_data = self._splitify(self._raw_src)
+            self._src_vocab.fit(src_data)
+
+        if self._tgt_vocab is None:
+            logger.info('build target text vocabulary...')
+            self._tgt_vocab = Vocabulary(max_size=max_size, min_freq=min_freq, bos_token=None, eos_token=None)
+            tgt_data = self._splitify(self._raw_tgt)
+            self._tgt_vocab.fit(tgt_data)
+
+        self._src_vocab.to_json(src_vocab_path)
+        logger.info('save input text vocabulary...')
+        self._tgt_vocab.to_json(tgt_vocab_path)
+        logger.info('save label vocabulary...')
+
+        return
+
+    def build_trainable_dataset(self,
+                                train_data_path: str = None,
+                                valid_data_path: str = None) -> None:
+        if self._has_resource:
+            return
+
+        if self._input_vocab is None or self._label_vocab is None:
+            raise ValueError()
+
+        train_data = dict()
+        train_data_path = self._dataset_dir / TRAIN_DATASET_FILENAME if train_data_path is None else train_data_path
+
+        valid_data = dict()
+        valid_data_path = self._dataset_dir / VALIDATION_DATASET_FILENAME if valid_data_path is None else valid_data_path
+
+        logger.info('split train and valid dataset: test split rate is 0.1')
+        train_raw_data, valid_raw_data = self._split_into_valid_and_train(self._raw_src, self._raw_tgt)
+
+        train_data['sources'] = self._numerize_from_text(train_raw_data[0], self._src_vocab)
+        train_data['targets'] = self._numerize_from_text(train_raw_data[1], self._tgt_vocab)
+
+        valid_data['sources'] = self._numerize_from_text(valid_raw_data[0], self._src_vocab)
+        valid_data['targets'] = self._numerize_from_text(valid_raw_data[1], self._tgt_vocab)
+
+        logger.info('save train and valid dataset as json format.')
+        self._save_as_json(train_data, train_data_path)
+        self._save_as_json(valid_data, valid_data_path)
+
+        self._train_data_path.append(train_data_path)
+        self._valid_data_path.append(valid_data_path)
+
+        return
+
+    def build_instant_data_loader(self, src_path, tgt_path, data_path=None):
+        instant_data = dict()
+        data_path = self._dataset_dir / INSTANT_DATASET_FILENAME if data_path is None else data_path
+
+        src_data = self._load_text(src_path)
+        tgt_data = self._load_text(tgt_path)
+
+        instant_data['sources'] = self._numerize_from_text(src_data, self._src_vocab)
+        instant_data['targets'] = self._numerize_from_text(tgt_data, self._tgt_vocab)
+
+        self._save_as_json(instant_data, data_path)
+
+        instant_dataset = SequencePairDatasetFromJSONFile(data_path)
+
+        instant_data_loader = DataLoader(instant_dataset,
+                                         batch_size=1)
+
+        return instant_data_loader
+
+    def build_data_loader(self, batch_size, limit_src_pad_len, limit_tgt_pad_len, valid_batch_size=1,
+                          enable_length=True):
+        logger.info('now get training dataloader object...')
+        train_dataset = SequencePairDatasetFromJSONFile(self._train_data_path[0],
+                                                        limit_src_pad_len=limit_src_pad_len,
+                                                        limit_tgt_pad_len=limit_tgt_pad_len,
+                                                        enable_length=enable_length)
+
+        if valid_batch_size <= 1:
+            limit_src_pad_len = None
+            limit_tgt_pad_len = None
+
+        valid_dataset = SequencePairDatasetFromJSONFile(self._valid_data_path[0],
+                                                        limit_src_pad_len=limit_src_pad_len,
+                                                        limit_tgt_pad_len=limit_tgt_pad_len)
+
+        train_data_loader = DataLoader(train_dataset,
+                                       batch_size=batch_size,
+                                       shuffle=True,
+                                       num_workers=4,
+                                       drop_last=True)
+
+        valid_data_loader = DataLoader(valid_dataset,
+                                       batch_size=valid_batch_size,
+                                       num_workers=4)
+
+        return train_data_loader, valid_data_loader
+
+    def _split_into_valid_and_train(self, input, label, test_size=0.1, random_state=RANDOM_SEED):
+        input_train, input_test, label_train, label_test = train_test_split(input, label,
+                                                                            test_size=test_size,
+                                                                            random_state=random_state)
+
+        return (input_train, label_train), (input_test, label_test)
