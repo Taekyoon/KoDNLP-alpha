@@ -25,27 +25,27 @@ logger = logging.getLogger(__name__)
 class DatasetBuilder(object):
     @property
     def input_vocab(self):
-        return self._input_vocab
+        return self._src_vocab
 
     @property
     def tag_vocab(self):
-        return self._label_vocab
+        return self._tgt_vocab
 
     @property
     def class_vocab(self):
-        return self._class_vocab
+        return self._cls_vocab
 
     @property
     def word_to_idx(self):
-        return self._input_vocab.word_to_idx
+        return self._src_vocab.word_to_idx
 
     @property
     def tag_to_idx(self):
-        return self._label_vocab.word_to_idx
+        return self._tgt_vocab.word_to_idx
 
     @property
     def class_to_idx(self):
-        return self._class_vocab.word_to_idx
+        return self._cls_vocab.word_to_idx
 
     def _split_into_valid_and_train(self, input, label, test_size=0.1, random_state=RANDOM_SEED):
         raise NotImplementedError()
@@ -286,7 +286,7 @@ class SLUDatasetBuilder(DatasetBuilder):
 
                 self._src_vocab = Vocabulary().from_json(input_vocab_path)
                 self._tgt_vocab = Vocabulary().from_json(label_vocab_path)
-                self._class_vocab = Vocabulary().from_json(class_vocab_path)
+                self._cls_vocab = Vocabulary().from_json(class_vocab_path)
 
                 self._train_data_path = [train_data_save_path]
                 self._valid_data_path = [valid_data_save_path]
@@ -311,7 +311,7 @@ class SLUDatasetBuilder(DatasetBuilder):
 
         self._src_vocab = input_vocab
         self._tgt_vocab = label_vocab
-        self._class_vocab = class_vocab
+        self._cls_vocab = class_vocab
 
         self._train_data_path = list()
         self._valid_data_path = list()
@@ -340,18 +340,18 @@ class SLUDatasetBuilder(DatasetBuilder):
             label_data = self._splitify(self._raw_label)
             self._tgt_vocab.fit(label_data)
 
-        if self._class_vocab is None:
+        if self._cls_vocab is None:
             logger.info('build class vocabulary...')
-            self._class_vocab = Vocabulary(unknown_token=None, padding_token=None, bos_token=None, eos_token=None)
+            self._cls_vocab = Vocabulary(unknown_token=None, padding_token=None, bos_token=None, eos_token=None)
             class_data = self._raw_class
-            self._class_vocab.fit(class_data)
+            self._cls_vocab.fit(class_data)
 
         logger.info('save input text vocabulary...')
         self._src_vocab.to_json(input_vocab_path)
         logger.info('save label vocabulary...')
         self._tgt_vocab.to_json(label_vocab_path)
         logger.info('save class vocabulary...')
-        self._class_vocab.to_json(class_vocab_path)
+        self._cls_vocab.to_json(class_vocab_path)
 
         return
 
@@ -376,11 +376,11 @@ class SLUDatasetBuilder(DatasetBuilder):
 
         train_data['inputs'] = self._numerize_from_text(train_raw_data[0], self._src_vocab)
         train_data['slots'] = self._numerize_from_text(train_raw_data[1], self._tgt_vocab)
-        train_data['intents'] = self._numerize_from_text(train_raw_data[2], self._class_vocab)
+        train_data['intents'] = self._numerize_from_text(train_raw_data[2], self._cls_vocab)
 
         valid_data['inputs'] = self._numerize_from_text(valid_raw_data[0], self._src_vocab)
         valid_data['slots'] = self._numerize_from_text(valid_raw_data[1], self._tgt_vocab)
-        valid_data['intents'] = self._numerize_from_text(valid_raw_data[2], self._class_vocab)
+        valid_data['intents'] = self._numerize_from_text(valid_raw_data[2], self._cls_vocab)
 
         logger.info('save train and valid dataset as json format.')
         self._save_as_json(train_data, train_data_save_path)
@@ -401,7 +401,7 @@ class SLUDatasetBuilder(DatasetBuilder):
 
         instant_data['inputs'] = self._numerize_from_text(input_data, self._src_vocab)
         instant_data['slots'] = self._numerize_from_text(label_data, self._tgt_vocab)
-        instant_data['intents'] = self._numerize_from_text(class_data, self._class_vocab)
+        instant_data['intents'] = self._numerize_from_text(class_data, self._cls_vocab)
 
         self._save_as_json(instant_data, data_path)
 
@@ -477,8 +477,8 @@ class WordSegmentationDatasetBuilder(NERDatasetBuilder):
                 if not os.path.exists(label_vocab_path):
                     raise FileNotFoundError()
 
-                self._input_vocab = Vocabulary().from_json(input_vocab_path)
-                self._label_vocab = Vocabulary().from_json(label_vocab_path)
+                self._src_vocab = Vocabulary().from_json(input_vocab_path)
+                self._tgt_vocab = Vocabulary().from_json(label_vocab_path)
 
                 self._train_data_path = [train_data_save_path]
                 self._valid_data_path = [valid_data_save_path]
@@ -503,8 +503,8 @@ class WordSegmentationDatasetBuilder(NERDatasetBuilder):
         logger.info('now labelize dataset...')
         self._raw_input, self._raw_label = self._self_labelize(self._input_text)
 
-        self._input_vocab = input_vocab
-        self._label_vocab = label_vocab
+        self._src_vocab = input_vocab
+        self._tgt_vocab = label_vocab
 
         self._train_data_path = list()
         self._valid_data_path = list()
@@ -539,7 +539,6 @@ class SequencePairDatasetBuilder(DatasetBuilder):
         self._dataset_dir = dataset_dir
         self._has_resource = False
 
-        print(self._dataset_dir.exists())
         if self._dataset_dir.exists():
             try:
                 train_data_save_path = self._dataset_dir / TRAIN_DATASET_FILENAME

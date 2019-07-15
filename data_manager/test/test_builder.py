@@ -172,15 +172,15 @@ def test_seq_pair_dataset_test_lodaer_iterate():
 
     seq_pair_builder.build_vocabulary()
     seq_pair_builder.build_trainable_dataset()
-    train_data_loader, _ = seq_pair_builder.build_data_loader(batch_size, sequence_length)
+    train_data_loader, _ = seq_pair_builder.build_data_loader(batch_size, sequence_length, sequence_length)
 
     for batch in train_data_loader:
         train_batch = batch
         break
 
     assert isinstance(train_batch, dict)
-    assert len(train_batch['inputs']) == batch_size
-    assert train_batch['inputs']['length'][0] <= sequence_length
+    assert len(train_batch['sources']) == batch_size
+    assert train_batch['sources']['length'][0] <= sequence_length
 
 
 def test_seq_pair_dataset_valid_lodaer_iterate():
@@ -196,14 +196,14 @@ def test_seq_pair_dataset_valid_lodaer_iterate():
 
     seq_pair_builder.build_vocabulary()
     seq_pair_builder.build_trainable_dataset()
-    _, valid_data_loader = seq_pair_builder.build_data_loader(batch_size, sequence_length)
+    _, valid_data_loader = seq_pair_builder.build_data_loader(batch_size, sequence_length, sequence_length)
 
     for batch in valid_data_loader:
         valid_batch = batch
         break
 
     assert isinstance(valid_batch, dict)
-    assert len(valid_batch['inputs']['value']) == 1
+    assert len(valid_batch['sources']['value']) == 1
 
 
 def test_seq_pair_dataset_instant_lodaer_iterate():
@@ -223,5 +223,5 @@ def test_seq_pair_dataset_instant_lodaer_iterate():
         break
 
     assert isinstance(valid_batch, dict)
-    assert len(valid_batch['inputs']['value']) == 1
+    assert len(valid_batch['sources']['value']) == 1
 

@@ -155,6 +155,7 @@ class SequencePairDatasetFromJSONFile(Dataset):
     def __getitem__(self, idx: int) -> Tuple[Tensor, Tensor]:
         sampled_instances = dict()
         sampled_instances['sources'] = dict()
+        sampled_instances['targets'] = dict()
 
         sampled_sources = self._sources[idx]
         sampled_targets = self._targets[idx]
