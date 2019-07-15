@@ -1,5 +1,5 @@
 from pathlib import Path
-from data_manager.builder import NERDatasetBuilder, SLUDatasetBuilder
+from data_manager.builder import NERDatasetBuilder, SLUDatasetBuilder, SequencePairDatasetBuilder
 from torch.utils.data import DataLoader
 
 
@@ -119,7 +119,7 @@ def test_slu_dataset_valid_lodaer_iterate():
     label_path = './data_manager/test/test_dataset/slu/output.txt'
     class_path = './data_manager/test/test_dataset/slu/class.txt'
 
-    dataset_dir = Path('./data/test/test_dataset/slu/train_dataset')
+    dataset_dir = Path('./data_manager/test/test_dataset/slu/train_dataset')
 
     batch_size = 2
     sequence_length = 10
@@ -143,13 +143,80 @@ def test_slu_dataset_instant_lodaer_iterate():
     label_path = './data_manager/test/test_dataset/slu/output.txt'
     class_path = './data_manager/test/test_dataset/slu/class.txt'
 
-    dataset_dir = Path('./data/test/test_dataset/slu/train_dataset')
+    dataset_dir = Path('./data_manager/test/test_dataset/slu/train_dataset')
 
     slu_builder = SLUDatasetBuilder(input_path, label_path, class_path, dataset_dir=dataset_dir)
 
     slu_builder.build_vocabulary()
     slu_builder.build_trainable_dataset()
     instant_data_loader = slu_builder.build_instant_data_loader(input_path, label_path, class_path)
+
+    for batch in instant_data_loader:
+        valid_batch = batch
+        break
+
+    assert isinstance(valid_batch, dict)
+    assert len(valid_batch['inputs']['value']) == 1
+
+
+def test_seq_pair_dataset_test_lodaer_iterate():
+    source_path = './data_manager/test/test_dataset/sentence_pair/source.txt'
+    target_path = './data_manager/test/test_dataset/sentence_pair/target.txt'
+
+    dataset_dir = Path('./data_manager/test/test_dataset/seq_pair/train_dataset')
+
+    batch_size = 2
+    sequence_length = 10
+
+    seq_pair_builder = SequencePairDatasetBuilder(source_path, target_path, dataset_dir=dataset_dir)
+
+    seq_pair_builder.build_vocabulary()
+    seq_pair_builder.build_trainable_dataset()
+    train_data_loader, _ = seq_pair_builder.build_data_loader(batch_size, sequence_length)
+
+    for batch in train_data_loader:
+        train_batch = batch
+        break
+
+    assert isinstance(train_batch, dict)
+    assert len(train_batch['inputs']) == batch_size
+    assert train_batch['inputs']['length'][0] <= sequence_length
+
+
+def test_seq_pair_dataset_valid_lodaer_iterate():
+    source_path = './data_manager/test/test_dataset/sentence_pair/source.txt'
+    target_path = './data_manager/test/test_dataset/sentence_pair/target.txt'
+
+    dataset_dir = Path('./data_manager/test/test_dataset/seq_pair/train_dataset')
+
+    batch_size = 2
+    sequence_length = 10
+
+    seq_pair_builder = SequencePairDatasetBuilder(source_path, target_path, dataset_dir=dataset_dir)
+
+    seq_pair_builder.build_vocabulary()
+    seq_pair_builder.build_trainable_dataset()
+    _, valid_data_loader = seq_pair_builder.build_data_loader(batch_size, sequence_length)
+
+    for batch in valid_data_loader:
+        valid_batch = batch
+        break
+
+    assert isinstance(valid_batch, dict)
+    assert len(valid_batch['inputs']['value']) == 1
+
+
+def test_seq_pair_dataset_instant_lodaer_iterate():
+    source_path = './data_manager/test/test_dataset/sentence_pair/source.txt'
+    target_path = './data_manager/test/test_dataset/sentence_pair/target.txt'
+
+    dataset_dir = Path('./data_manager/test/test_dataset/seq_pair/train_dataset')
+
+    seq_pair_builder = SequencePairDatasetBuilder(source_path, target_path, dataset_dir=dataset_dir)
+
+    seq_pair_builder.build_vocabulary()
+    seq_pair_builder.build_trainable_dataset()
+    instant_data_loader = seq_pair_builder.build_instant_data_loader(source_path, target_path)
 
     for batch in instant_data_loader:
         valid_batch = batch

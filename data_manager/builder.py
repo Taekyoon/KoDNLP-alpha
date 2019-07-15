@@ -105,8 +105,8 @@ class NERDatasetBuilder(DatasetBuilder):
                 if not os.path.exists(label_vocab_path):
                     raise FileNotFoundError()
 
-                self._input_vocab = Vocabulary().from_json(input_vocab_path)
-                self._label_vocab = Vocabulary().from_json(label_vocab_path)
+                self._src_vocab = Vocabulary().from_json(input_vocab_path)
+                self._tgt_vocab = Vocabulary().from_json(label_vocab_path)
 
                 self._train_data_path = [train_data_save_path]
                 self._valid_data_path = [valid_data_save_path]
@@ -127,8 +127,8 @@ class NERDatasetBuilder(DatasetBuilder):
         else:
             raise NotImplementedError()
 
-        self._input_vocab = input_vocab
-        self._label_vocab = label_vocab
+        self._src_vocab = input_vocab
+        self._tgt_vocab = label_vocab
 
         self._train_data_path = list()
         self._valid_data_path = list()
@@ -144,21 +144,21 @@ class NERDatasetBuilder(DatasetBuilder):
         input_vocab_path = self._dataset_dir / INPUT_VOCAB_FILENAME
         label_vocab_path = self._dataset_dir / TAG_VOCAB_FILENAME
 
-        if self._input_vocab is None:
+        if self._src_vocab is None:
             logger.info('build input text vocabulary...')
-            self._input_vocab = Vocabulary(max_size=max_size, min_freq=min_freq, bos_token=None, eos_token=None)
+            self._src_vocab = Vocabulary(max_size=max_size, min_freq=min_freq, bos_token=None, eos_token=None)
             input_data = self._splitify(self._raw_input)
-            self._input_vocab.fit(input_data)
+            self._src_vocab.fit(input_data)
 
-        if self._label_vocab is None:
+        if self._tgt_vocab is None:
             logger.info('build label vocabulary...')
-            self._label_vocab = Vocabulary(unknown_token=None)
+            self._tgt_vocab = Vocabulary(unknown_token=None)
             label_data = self._splitify(self._raw_label)
-            self._label_vocab.fit(label_data)
+            self._tgt_vocab.fit(label_data)
 
-        self._input_vocab.to_json(input_vocab_path)
+        self._src_vocab.to_json(input_vocab_path)
         logger.info('save input text vocabulary...')
-        self._label_vocab.to_json(label_vocab_path)
+        self._tgt_vocab.to_json(label_vocab_path)
         logger.info('save label vocabulary...')
 
         return
@@ -169,7 +169,7 @@ class NERDatasetBuilder(DatasetBuilder):
         if self._has_resource:
             return
 
-        if self._input_vocab is None or self._label_vocab is None:
+        if self._src_vocab is None or self._tgt_vocab is None:
             raise ValueError()
 
         train_data = dict()
@@ -181,11 +181,11 @@ class NERDatasetBuilder(DatasetBuilder):
         logger.info('split train and valid dataset: test split rate is 0.1')
         train_raw_data, valid_raw_data = self._split_into_valid_and_train(self._raw_input, self._raw_label)
 
-        train_data['inputs'] = self._numerize_from_text(train_raw_data[0], self._input_vocab)
-        train_data['entities'] = self._numerize_from_text(train_raw_data[1], self._label_vocab)
+        train_data['inputs'] = self._numerize_from_text(train_raw_data[0], self._src_vocab)
+        train_data['entities'] = self._numerize_from_text(train_raw_data[1], self._tgt_vocab)
 
-        valid_data['inputs'] = self._numerize_from_text(valid_raw_data[0], self._input_vocab)
-        valid_data['entities'] = self._numerize_from_text(valid_raw_data[1], self._label_vocab)
+        valid_data['inputs'] = self._numerize_from_text(valid_raw_data[0], self._src_vocab)
+        valid_data['entities'] = self._numerize_from_text(valid_raw_data[1], self._tgt_vocab)
 
         logger.info('save train and valid dataset as json format.')
         self._save_as_json(train_data, train_data_path)
@@ -203,8 +203,8 @@ class NERDatasetBuilder(DatasetBuilder):
         input_data = self._load_text(input_path)
         label_data = self._load_text(label_path)
 
-        instant_data['inputs'] = self._numerize_from_text(input_data, self._input_vocab)
-        instant_data['entities'] = self._numerize_from_text(label_data, self._label_vocab)
+        instant_data['inputs'] = self._numerize_from_text(input_data, self._src_vocab)
+        instant_data['entities'] = self._numerize_from_text(label_data, self._tgt_vocab)
 
         self._save_as_json(instant_data, data_path)
 
@@ -284,8 +284,8 @@ class SLUDatasetBuilder(DatasetBuilder):
                 if not os.path.exists(class_vocab_path):
                     raise FileNotFoundError()
 
-                self._input_vocab = Vocabulary().from_json(input_vocab_path)
-                self._label_vocab = Vocabulary().from_json(label_vocab_path)
+                self._src_vocab = Vocabulary().from_json(input_vocab_path)
+                self._tgt_vocab = Vocabulary().from_json(label_vocab_path)
                 self._class_vocab = Vocabulary().from_json(class_vocab_path)
 
                 self._train_data_path = [train_data_save_path]
@@ -309,8 +309,8 @@ class SLUDatasetBuilder(DatasetBuilder):
         else:
             raise NotImplementedError()
 
-        self._input_vocab = input_vocab
-        self._label_vocab = label_vocab
+        self._src_vocab = input_vocab
+        self._tgt_vocab = label_vocab
         self._class_vocab = class_vocab
 
         self._train_data_path = list()
@@ -328,17 +328,17 @@ class SLUDatasetBuilder(DatasetBuilder):
         label_vocab_path = self._dataset_dir / TAG_VOCAB_FILENAME
         class_vocab_path = self._dataset_dir / CLASS_VOCAB_FILENAME
 
-        if self._input_vocab is None:
+        if self._src_vocab is None:
             logger.info('build input text vocabulary...')
-            self._input_vocab = Vocabulary(max_size=max_size, min_freq=min_freq, bos_token=None, eos_token=None)
+            self._src_vocab = Vocabulary(max_size=max_size, min_freq=min_freq, bos_token=None, eos_token=None)
             input_data = self._splitify(self._raw_input)
-            self._input_vocab.fit(input_data)
+            self._src_vocab.fit(input_data)
 
-        if self._label_vocab is None:
+        if self._tgt_vocab is None:
             logger.info('build label vocabulary...')
-            self._label_vocab = Vocabulary(unknown_token=None)
+            self._tgt_vocab = Vocabulary(unknown_token=None)
             label_data = self._splitify(self._raw_label)
-            self._label_vocab.fit(label_data)
+            self._tgt_vocab.fit(label_data)
 
         if self._class_vocab is None:
             logger.info('build class vocabulary...')
@@ -347,9 +347,9 @@ class SLUDatasetBuilder(DatasetBuilder):
             self._class_vocab.fit(class_data)
 
         logger.info('save input text vocabulary...')
-        self._input_vocab.to_json(input_vocab_path)
+        self._src_vocab.to_json(input_vocab_path)
         logger.info('save label vocabulary...')
-        self._label_vocab.to_json(label_vocab_path)
+        self._tgt_vocab.to_json(label_vocab_path)
         logger.info('save class vocabulary...')
         self._class_vocab.to_json(class_vocab_path)
 
@@ -361,7 +361,7 @@ class SLUDatasetBuilder(DatasetBuilder):
         if self._has_resource:
             return
 
-        if self._input_vocab is None or self._label_vocab is None:
+        if self._src_vocab is None or self._tgt_vocab is None:
             raise ValueError()
 
         train_data = dict()
@@ -374,12 +374,12 @@ class SLUDatasetBuilder(DatasetBuilder):
         train_raw_data, valid_raw_data = self._split_into_valid_and_train(self._raw_input, self._raw_label,
                                                                           self._raw_class)
 
-        train_data['inputs'] = self._numerize_from_text(train_raw_data[0], self._input_vocab)
-        train_data['slots'] = self._numerize_from_text(train_raw_data[1], self._label_vocab)
+        train_data['inputs'] = self._numerize_from_text(train_raw_data[0], self._src_vocab)
+        train_data['slots'] = self._numerize_from_text(train_raw_data[1], self._tgt_vocab)
         train_data['intents'] = self._numerize_from_text(train_raw_data[2], self._class_vocab)
 
-        valid_data['inputs'] = self._numerize_from_text(valid_raw_data[0], self._input_vocab)
-        valid_data['slots'] = self._numerize_from_text(valid_raw_data[1], self._label_vocab)
+        valid_data['inputs'] = self._numerize_from_text(valid_raw_data[0], self._src_vocab)
+        valid_data['slots'] = self._numerize_from_text(valid_raw_data[1], self._tgt_vocab)
         valid_data['intents'] = self._numerize_from_text(valid_raw_data[2], self._class_vocab)
 
         logger.info('save train and valid dataset as json format.')
@@ -399,8 +399,8 @@ class SLUDatasetBuilder(DatasetBuilder):
         label_data = self._load_text(label_path)
         class_data = self._load_text(class_path)
 
-        instant_data['inputs'] = self._numerize_from_text(input_data, self._input_vocab)
-        instant_data['slots'] = self._numerize_from_text(label_data, self._label_vocab)
+        instant_data['inputs'] = self._numerize_from_text(input_data, self._src_vocab)
+        instant_data['slots'] = self._numerize_from_text(label_data, self._tgt_vocab)
         instant_data['intents'] = self._numerize_from_text(class_data, self._class_vocab)
 
         self._save_as_json(instant_data, data_path)
@@ -534,12 +534,13 @@ class SequencePairDatasetBuilder(DatasetBuilder):
                  file_type: str = 'text',
                  src_vocab: Vocabulary = None,
                  tgt_vocab: Vocabulary = None,
-                 dataset_dir: str = Path('./dataset/ner')):
+                 dataset_dir: Path = Path('./dataset/seq_pair')):
 
         self._dataset_dir = dataset_dir
         self._has_resource = False
 
-        if os.path.isdir(self._dataset_dir):
+        print(self._dataset_dir.exists())
+        if self._dataset_dir.exists():
             try:
                 train_data_save_path = self._dataset_dir / TRAIN_DATASET_FILENAME
                 valid_data_save_path = self._dataset_dir / VALIDATION_DATASET_FILENAME
@@ -623,7 +624,7 @@ class SequencePairDatasetBuilder(DatasetBuilder):
         if self._has_resource:
             return
 
-        if self._input_vocab is None or self._label_vocab is None:
+        if self._src_vocab is None or self._tgt_vocab is None:
             raise ValueError()
 
         train_data = dict()

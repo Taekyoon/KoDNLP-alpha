@@ -16,7 +16,9 @@ class TransformerTagger(nn.Module):
 
         self.transformer = Transformer(embedding_dim, hidden_dim * head_size, vocab_size, num_heads=head_size,
                                        num_layers=layer_size, causal=True)
-        self._fc = nn.Linear(embedding_dim, tag_size)
+        self._fc1 = nn.Linear(embedding_dim, embedding_dim)
+        self._activate = nn.Tanh()
+        self._fc2 = nn.Linear(embedding_dim, tag_size)
 
         self._ce_loss = nn.CrossEntropyLoss(reduction='none')
 
@@ -24,7 +26,8 @@ class TransformerTagger(nn.Module):
         masking = x.ne(self._pad_idx)
 
         hiddens = self.transformer(x.transpose(0, 1)).transpose(0, 1)
-        emissions = self._fc(hiddens)
+        linear_hidden = self._activate(self._fc1(hiddens))
+        emissions = self._fc2(linear_hidden)
 
         emissions = nn.functional.softmax(emissions, dim=-1)
         path = torch.argmax(emissions, dim=-1)
@@ -36,7 +39,8 @@ class TransformerTagger(nn.Module):
     def loss(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         masking = x.ne(self._pad_idx)
         hiddens = self.transformer(x.transpose(0, 1)).transpose(0, 1)
-        emissions = self._fc(hiddens)
+        linear_hidden = self._activate(self._fc1(hiddens))
+        emissions = self._fc2(linear_hidden)
 
         nll = self._ce_loss(emissions.view(-1, self._tag_size), y.view(-1))
         # nll = torch.mean(nll * masking.view(-1).float())

@@ -8,26 +8,26 @@
       "input": "./corpus/sejong_raw/train.txt"
     },
     "test": {
-      "input": "./corpus/wiki_kor_raw/test.txt"
+      "input": "./corpus/sejong_raw/test.txt"
     }
   },
   "deploy": {
-    "path": "./tmp/sejong_spacing_transformer_epoch_10,batch_128_len_100"
+    "path": "./tmp/sejong_spacing_transformer_epoch_10,batch_128_len_200"
   },
   "model": {
     "type": "transformer",
     "parameters": {
-      "word_embedding_dims": 32,
-      "hidden_dims": 64,
+      "word_embedding_dims": 256,
+      "hidden_dims": 32,
       "head_size": 8,
-      "layer_size": 4
+      "layer_size": 3
     }
   },
   "train": {
     "epochs": 10,
     "eval_steps": 5000,
-    "eval_batch_size": 512,
+    "eval_batch_size": 64,
     "batch_size": 128,
-    "sequence_length": 100
+    "sequence_length": 200
   }
 }

@@ -1,7 +1,7 @@
 {
   "type": "word_segment",
   "gpu_device": 0,
-  "load_model": "./tmp/model/bert/pytorch_model.bin",
+  "load_model": "./tmp/sejong_bert_1_spacing_batch_92_len_200/model/checkpoint/checkpoint_130000_model.pkl",
   "tokenizer": "syllable_tokenizer",
   "load_model_strict": false,
   "dataset": {

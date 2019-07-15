@@ -4,7 +4,7 @@ import torch.nn as nn
 
 # This all implementations referred from huggingface
 class Transformer(nn.Module):
-    def __init__(self, embed_dim, hidden_dim, num_embeddings, num_max_positions=100, num_heads=8, num_layers=4,
+    def __init__(self, embed_dim, hidden_dim, num_embeddings, num_max_positions=512, num_heads=8, num_layers=4,
                  dropout=.1, causal=False):
         super().__init__()
         self.causal = causal
