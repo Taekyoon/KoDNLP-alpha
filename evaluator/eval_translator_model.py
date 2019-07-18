@@ -24,6 +24,7 @@ class TranslationModelEvaluator(object):
         logger.info('now evaluate!')
 
         self._model.eval()
+        self._model.to(self._device)
 
         bleu_score = 0.
 

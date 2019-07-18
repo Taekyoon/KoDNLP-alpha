@@ -66,6 +66,14 @@ class BiLSTMSeq2Seq(nn.Module):
 
         self.ce_loss = CrossEntropyLoss(reduction='none')
 
+        self.device = torch.cuda.current_device()
+
+    def to(self, device):
+        super(BiLSTMSeq2Seq, self).to(device)
+        self.device = device
+
+        return
+
     def forward(self, inputs: torch.Tensor, max_seq_len: int = 20):
         batch_size = inputs.size(0)
 
@@ -75,9 +83,9 @@ class BiLSTMSeq2Seq(nn.Module):
         encoder_outputs, encoder_hidden = self.encoder(inputs)
         encoder_state = torch.cat([*encoder_hidden[0]], dim=1).unsqueeze(1)
 
-        decoder_input = torch.full((batch_size, 1), self.bos_idx).long()
-        h_0 = torch.zeros((self.decoder.num_layers, batch_size, self.decoder.hidden_size))
-        c_0 = torch.zeros((self.decoder.num_layers, batch_size, self.decoder.hidden_size))
+        decoder_input = torch.full((batch_size, 1), self.bos_idx).long().to(self.device)
+        h_0 = torch.zeros((self.decoder.num_layers, batch_size, self.decoder.hidden_size)).to(self.device)
+        c_0 = torch.zeros((self.decoder.num_layers, batch_size, self.decoder.hidden_size)).to(self.device)
         decoder_hidden = (h_0, c_0)
         decoded_sequence = list()
 
@@ -107,9 +115,9 @@ class BiLSTMSeq2Seq(nn.Module):
         encoder_outputs, encoder_hidden = self.encoder(inputs)
         encoder_state = torch.cat([*encoder_hidden[0]], dim=1).unsqueeze(1)
 
-        decoder_input = torch.full((batch_size, 1), self.bos_idx).long()
-        h_0 = torch.zeros((self.decoder.num_layers, batch_size, self.decoder.hidden_size))
-        c_0 = torch.zeros((self.decoder.num_layers, batch_size, self.decoder.hidden_size))
+        decoder_input = torch.full((batch_size, 1), self.bos_idx).long().to(self.device)
+        h_0 = torch.zeros((self.decoder.num_layers, batch_size, self.decoder.hidden_size)).to(self.device)
+        c_0 = torch.zeros((self.decoder.num_layers, batch_size, self.decoder.hidden_size)).to(self.device)
         decoder_hidden = (h_0, c_0)
 
         loss = list()

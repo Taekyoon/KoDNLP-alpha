@@ -1,6 +1,6 @@
 {
   "type": "translate",
-  "gpu_device": -1,
+  "gpu_device": 0,
   "tokenizer": "space_tokenizer",
   "dataset": {
     "name": "test",
@@ -11,8 +11,8 @@
     },
     "test": {
       "limit_len": 30,
-      "source": "./corpus/korean_english_translate/korean-english-park.train.ko",
-      "target": "./corpus/korean_english_translate/korean-english-park.train.en"
+      "source": "./corpus/korean_english_translate/korean-english-park.test.ko",
+      "target": "./corpus/korean_english_translate/korean-english-park.test.en"
     }
   },
   "deploy": {
@@ -26,7 +26,7 @@
     }
   },
   "train": {
-    "epochs": 100,
+    "epochs": 500,
     "eval_steps": -1,
     "eval_batch_size": 512,
     "batch_size": 128,
