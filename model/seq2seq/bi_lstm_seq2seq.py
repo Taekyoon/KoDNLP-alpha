@@ -28,7 +28,8 @@ class BiLSTMEncoder(nn.Module):
 
 
 class LSTMDecoder(nn.Module):
-    def __init__(self, vocab_size, embedding_size, encoder_state_size, hidden_size, pad_idx=0, num_layers=1, dropout=0.):
+    def __init__(self, vocab_size, embedding_size, encoder_state_size, hidden_size, pad_idx=0, num_layers=1,
+                 dropout=0.):
         super(LSTMDecoder, self).__init__()
         self.pad_idx = pad_idx
         self.num_layers = num_layers
@@ -49,7 +50,8 @@ class LSTMDecoder(nn.Module):
 
 
 class BiLSTMSeq2Seq(nn.Module):
-    def __init__(self, encoder: BiLSTMEncoder, decoder: LSTMDecoder, bos_idx=1, eos_idx=2, teacher_force_rate=0.7):
+    def __init__(self, encoder: BiLSTMEncoder, decoder: LSTMDecoder,
+                 attention=None, bos_idx=1, eos_idx=2, teacher_force_rate=0.7):
         super(BiLSTMSeq2Seq, self).__init__()
 
         self.teacher_force_rate = teacher_force_rate
@@ -59,6 +61,8 @@ class BiLSTMSeq2Seq(nn.Module):
 
         self.encoder = encoder
         self.decoder = decoder
+
+        self.attention = attention if attention is not None else None
 
         self.ce_loss = CrossEntropyLoss(reduction='none')
 
@@ -80,6 +84,9 @@ class BiLSTMSeq2Seq(nn.Module):
         for i in range(max_seq_len):
             if decoder_input[:, 0] == self.eos_idx:
                 break
+
+            if self.attention is not None:
+                encoder_state = self.get_context_state(decoder_hidden, encoder_outputs)
 
             decoder_output, next_decoder_hidden = self.decoder(decoder_input, encoder_state, decoder_hidden)
             decoded_label = torch.argmax(decoder_output, dim=-1)
@@ -108,6 +115,9 @@ class BiLSTMSeq2Seq(nn.Module):
         loss = list()
 
         for i in range(target_seq_len - 1):
+            if self.attention is not None:
+                encoder_state = self.get_context_state(decoder_hidden, encoder_outputs)
+
             decoder_output, next_decoder_hidden = self.decoder(decoder_input, encoder_state, decoder_hidden)
             decoded_label = torch.argmax(decoder_output, dim=-1).long()
 
@@ -122,8 +132,16 @@ class BiLSTMSeq2Seq(nn.Module):
 
         loss = torch.stack(loss, dim=1) * target_mask
         loss = torch.mean(loss, 1)
+        loss = torch.mean(loss, 0)
 
         return loss
+
+    def get_context_state(self, decoder_hidden, encoder_outputs):
+        attn_decoder_hidden = torch.cat([*decoder_hidden[0]], dim=1).unsqueeze(1)
+        attn_score = self.attention(attn_decoder_hidden, encoder_outputs)
+        context_state = torch.bmm(encoder_outputs.transpose(-1, -2), attn_score).transpose(-1, -2)
+
+        return context_state
 
     def _teacher_force(self):
         return self.teacher_force_rate > np.random.rand(1)[0]

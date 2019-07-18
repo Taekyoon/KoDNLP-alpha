@@ -25,7 +25,7 @@ def test_model_train_with_train_data():
     slu_builder.build_trainable_dataset()
     train_data_loader, valid_data_loader = slu_builder.build_data_loader(batch_size, sequence_length)
 
-    word_to_idx, tag_to_idx, class_to_idx = slu_builder.word_to_idx, slu_builder.tag_to_idx, slu_builder.class_to_idx
+    word_to_idx, tag_to_idx, class_to_idx = slu_builder.source_to_idx, slu_builder.target_to_idx, slu_builder.class_to_idx
 
     slu_model = BilstmCRF(len(word_to_idx), len(class_to_idx), tag_to_idx, embedding_dim, hidden_dim)
 

@@ -17,3 +17,4 @@ SRC_VOCAB_FILENAME = 'source_vocab.json'
 TGT_VOCAB_FILENAME = 'target_vocab.json'
 
 RANDOM_SEED = 49
+LARGE_NUMBER = 2e16

@@ -1,6 +1,7 @@
 import numpy as np
 
 from sklearn.metrics import f1_score, accuracy_score
+from nltk.translate.bleu_score import sentence_bleu
 
 
 def f1(pred, target, labels=None):
@@ -29,3 +30,11 @@ def acc(pred, target):
                                                                                                    len(target)))
 
     return accuracy_score(target, pred)
+
+
+def bleu(pred, target):
+    score = 0.
+    for p, t in zip(pred, target):
+        score += sentence_bleu([p], t)
+
+    return score / len(pred)

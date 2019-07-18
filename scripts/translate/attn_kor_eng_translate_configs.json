@@ -1,0 +1,35 @@
+{
+  "type": "translate",
+  "gpu_device": -1,
+  "tokenizer": "space_tokenizer",
+  "dataset": {
+    "name": "test",
+    "train": {
+      "vocab_min_freq": 10,
+      "source": "./corpus/korean_english_translate/korean-english-park.train.ko",
+      "target": "./corpus/korean_english_translate/korean-english-park.train.en"
+    },
+    "test": {
+      "limit_len": 30,
+      "source": "./corpus/korean_english_translate/korean-english-park.train.ko",
+      "target": "./corpus/korean_english_translate/korean-english-park.train.en"
+    }
+  },
+  "deploy": {
+    "path": "./tmp/translate_attn_kor_eng"
+  },
+  "model": {
+    "type": "bilstm_attn_seq2seq",
+    "parameters": {
+      "word_embedding_dims": 300,
+      "hidden_dims": 150
+    }
+  },
+  "train": {
+    "epochs": 100,
+    "eval_steps": -1,
+    "eval_batch_size": 512,
+    "batch_size": 128,
+    "sequence_length": 30
+  }
+}

@@ -1,7 +1,9 @@
 from pathlib import Path
 
-from configs.constants import INPUT_VOCAB_FILENAME, TAG_VOCAB_FILENAME, CLASS_VOCAB_FILENAME
-from data_manager.builder import NERDatasetBuilder, SLUDatasetBuilder, WordSegmentationDatasetBuilder
+from configs.constants import INPUT_VOCAB_FILENAME, TAG_VOCAB_FILENAME, CLASS_VOCAB_FILENAME, SRC_VOCAB_FILENAME, \
+                              TGT_VOCAB_FILENAME
+from data_manager.builder import NERDatasetBuilder, SLUDatasetBuilder, WordSegmentationDatasetBuilder, \
+    SequencePairDatasetBuilder
 from data_manager.vocab import Vocabulary
 
 
@@ -24,6 +26,9 @@ def create_builder(type, dataset_configs, deploy_path='./tmp'):
         builder = SLUDatasetBuilder(Path(dataset_configs['input']), Path(dataset_configs['slots']),
                                     Path(dataset_configs['intents']), dataset_dir=deploy_path,
                                     input_vocab=input_vocab)
+    elif type == 'translate':
+        builder = SequencePairDatasetBuilder(Path(dataset_configs['source']), Path(dataset_configs['target']),
+                                             dataset_dir=deploy_path)
     else:
         raise NotImplementedError()
 
@@ -71,6 +76,20 @@ def load_vocab_dir(type, dir_path):
         ret = {'input_vocab': input_vocab,
                'label_vocab': label_vocab,
                'class_vocab': class_vocab}
+
+    elif type == 'translate':
+        source_vocab_path = dir_path / 'dataset' / SRC_VOCAB_FILENAME
+        target_vocab_path = dir_path / 'dataset' / TGT_VOCAB_FILENAME
+
+        source_vocab = Vocabulary()
+        target_vocab = Vocabulary()
+
+        source_vocab.from_json(source_vocab_path)
+        target_vocab.from_json(target_vocab_path)
+
+        ret = {'source_vocab': source_vocab,
+               'target_vocab': target_vocab}
+
     else:
         raise ValueError()
 

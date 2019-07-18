@@ -123,11 +123,11 @@ class WordSegmentAgent(Agent):
 
         data_builder = create_builder(self.task_type, train_dataset_configs, deploy_path=self.deploy_path / 'dataset')
 
-        if data_builder.word_to_idx:
-            self.model_configs['vocab_size'] = len(data_builder.word_to_idx)
+        if data_builder.source_to_idx:
+            self.model_configs['vocab_size'] = len(data_builder.source_to_idx)
 
-        if data_builder.tag_to_idx:
-            tag_to_idx = data_builder.tag_to_idx
+        if data_builder.target_to_idx:
+            tag_to_idx = data_builder.target_to_idx
 
         model = create_model(self.task_type, tag_to_idx, self.model_configs)
         if 'load_model' in self.configs:

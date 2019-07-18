@@ -8,6 +8,9 @@ from model.joint_classifier_and_sequence_tagger.cnn_bilstm_crf import CNNBilstmC
 from model.joint_classifier_and_sequence_tagger.bilstm_crf import BilstmCRF as BilstmCRF_SLU
 from model.joint_classifier_and_sequence_tagger.bert import BertJointTaggerAndClassifier
 
+from model.seq2seq.bi_lstm_seq2seq import BiLSTMEncoder, LSTMDecoder, BiLSTMSeq2Seq
+from model.modules.attention import LuongAttention
+
 from pytorch_pretrained_bert.modeling import BertConfig
 
 
@@ -54,6 +57,19 @@ def create_model(type, tag_to_idx, model_configs):
             model = BertJointTaggerAndClassifier(bert_configs, class_size, len(tag_to_idx))
         else:
             raise ValueError()
+    elif type == 'translate':
+        input_size, target_size = model_configs['source_size'], model_configs['target_size']
+        if model_type == 'bilstm_seq2seq':
+            encoder = BiLSTMEncoder(input_size, model_params['word_embedding_dims'], model_params['hidden_dims'])
+            decoder = LSTMDecoder(target_size, model_params['word_embedding_dims'], model_params['hidden_dims'] * 2,
+                                  model_params['hidden_dims'])
+            model = BiLSTMSeq2Seq(encoder, decoder)
+        elif model_type == 'bilstm_attn_seq2seq':
+            encoder = BiLSTMEncoder(input_size, model_params['word_embedding_dims'], model_params['hidden_dims'])
+            decoder = LSTMDecoder(target_size, model_params['word_embedding_dims'], model_params['hidden_dims'] * 2,
+                                  model_params['hidden_dims'] * 2)
+            attention = LuongAttention(model_params['hidden_dims'] * 2, model_params['hidden_dims'] * 2)
+            model = BiLSTMSeq2Seq(encoder, decoder, attention=attention)
     else:
         raise ValueError()
 

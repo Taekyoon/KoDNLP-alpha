@@ -23,14 +23,14 @@ def main(configs, test_only):
 
     data_builder = create_builder(task_type, train_dataset_configs, deploy_path=deploy_path / 'dataset')
 
-    if data_builder.word_to_idx:
-        model_configs['vocab_size'] = len(data_builder.word_to_idx)
+    if data_builder.source_to_idx:
+        model_configs['vocab_size'] = len(data_builder.source_to_idx)
 
     if task_type == 'slu' and data_builder.class_to_idx:
         model_configs['class_size'] = len(data_builder.class_to_idx)
 
-    if data_builder.tag_to_idx:
-        tag_to_idx = data_builder.tag_to_idx
+    if data_builder.target_to_idx:
+        tag_to_idx = data_builder.target_to_idx
 
     if not test_only:
         model = create_model(task_type, tag_to_idx, model_configs)

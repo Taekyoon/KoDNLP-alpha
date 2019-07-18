@@ -161,7 +161,7 @@ class Vocabulary(object):
             return False
         if not self.word_frequency == other.word_frequency:
             return False
-        if not self._word_to_idx == other.word_to_idx:
+        if not self._word_to_idx == other.source_to_idx:
             return False
         if not self._idx_to_word == other.idx_to_word:
             return False

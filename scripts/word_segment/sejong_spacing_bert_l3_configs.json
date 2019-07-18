@@ -7,6 +7,7 @@
   "dataset": {
     "name": "sejong_spacing",
     "train": {
+      "bi_tags_only": true,
       "vocab_path": "./corpus/bert_vocab.json",
       "input": "./corpus/sejong_raw/train.txt"
     },
@@ -16,7 +17,7 @@
     }
   },
   "deploy": {
-    "path": "./tmp/sejong_bert_3_spacing_batch_92_len_200"
+    "path": "./tmp/sejong_bert_3_bi_tag_spacing_batch_92_len_200"
   },
   "model": {
     "type": "bert",

@@ -24,11 +24,11 @@ logger = logging.getLogger(__name__)
 
 class DatasetBuilder(object):
     @property
-    def input_vocab(self):
+    def source_vocab(self):
         return self._src_vocab
 
     @property
-    def tag_vocab(self):
+    def target_vocab(self):
         return self._tgt_vocab
 
     @property
@@ -36,11 +36,11 @@ class DatasetBuilder(object):
         return self._cls_vocab
 
     @property
-    def word_to_idx(self):
+    def source_to_idx(self):
         return self._src_vocab.word_to_idx
 
     @property
-    def tag_to_idx(self):
+    def target_to_idx(self):
         return self._tgt_vocab.word_to_idx
 
     @property

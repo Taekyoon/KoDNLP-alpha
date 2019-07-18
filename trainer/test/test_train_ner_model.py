@@ -24,7 +24,7 @@ def test_model_train_with_train_data():
     ner_builder.build_trainable_dataset()
     train_data_loader, valid_data_loader = ner_builder.build_data_loader(batch_size, sequence_length)
 
-    word_to_idx, tag_to_idx = ner_builder.word_to_idx, ner_builder.tag_to_idx
+    word_to_idx, tag_to_idx = ner_builder.source_to_idx, ner_builder.target_to_idx
 
     ner_model = BilstmCRF(len(word_to_idx), tag_to_idx, embedding_dim, hidden_dim)
 
