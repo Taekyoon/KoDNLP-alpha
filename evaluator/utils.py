@@ -17,6 +17,8 @@ def create_evaluator(type, model, data_builder, dataset_configs, limit_len=None)
     elif type == 'translate':
         eval_data_loader = data_builder.build_instant_data_loader(dataset_configs['source'],
                                                                   dataset_configs['target'])
+    elif type == 'word_segment':
+        pass
     else:
         raise ValueError()
 

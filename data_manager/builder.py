@@ -600,13 +600,13 @@ class SequencePairDatasetBuilder(DatasetBuilder):
 
         if self._src_vocab is None:
             logger.info('build source text vocabulary...')
-            self._src_vocab = Vocabulary(max_size=max_size, min_freq=min_freq, bos_token=None, eos_token=None)
+            self._src_vocab = Vocabulary(max_size=max_size, min_freq=min_freq)
             src_data = self._splitify(self._raw_src)
             self._src_vocab.fit(src_data)
 
         if self._tgt_vocab is None:
             logger.info('build target text vocabulary...')
-            self._tgt_vocab = Vocabulary(max_size=max_size, min_freq=min_freq, bos_token=None, eos_token=None)
+            self._tgt_vocab = Vocabulary(max_size=max_size, min_freq=min_freq)
             tgt_data = self._splitify(self._raw_tgt)
             self._tgt_vocab.fit(tgt_data)
 

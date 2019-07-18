@@ -5,9 +5,9 @@
   "dataset": {
     "name": "test",
     "train": {
-      "vocab_min_freq": 10,
-      "source": "./corpus/korean_english_translate/korean-english-park.train.ko",
-      "target": "./corpus/korean_english_translate/korean-english-park.train.en"
+      "vocab_min_freq": 1,
+      "source": "./corpus/korean_english_translate/korean-english-park.dev.ko",
+      "target": "./corpus/korean_english_translate/korean-english-park.dev.en"
     },
     "test": {
       "limit_len": 30,
@@ -16,20 +16,20 @@
     }
   },
   "deploy": {
-    "path": "./tmp/translate_attn_kor_eng"
+    "path": "./tmp/translate_attn_kor_eng_t_1"
   },
   "model": {
     "type": "bilstm_attn_seq2seq",
     "parameters": {
-      "word_embedding_dims": 300,
-      "hidden_dims": 150
+      "word_embedding_dims": 32,
+      "hidden_dims": 64
     }
   },
   "train": {
     "epochs": 500,
-    "eval_steps": -1,
-    "eval_batch_size": 512,
-    "batch_size": 128,
+    "eval_steps": 100,
+    "eval_batch_size": 64,
+    "batch_size": 64,
     "sequence_length": 30
   }
 }

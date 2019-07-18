@@ -61,14 +61,14 @@ def create_model(type, tag_to_idx, model_configs):
         input_size, target_size = model_configs['source_size'], model_configs['target_size']
         if model_type == 'bilstm_seq2seq':
             encoder = BiLSTMEncoder(input_size, model_params['word_embedding_dims'], model_params['hidden_dims'])
-            decoder = LSTMDecoder(target_size, model_params['word_embedding_dims'], model_params['hidden_dims'] * 2,
+            decoder = LSTMDecoder(target_size, model_params['word_embedding_dims'], model_params['hidden_dims'] ,
                                   model_params['hidden_dims'])
             model = BiLSTMSeq2Seq(encoder, decoder)
         elif model_type == 'bilstm_attn_seq2seq':
             encoder = BiLSTMEncoder(input_size, model_params['word_embedding_dims'], model_params['hidden_dims'])
-            decoder = LSTMDecoder(target_size, model_params['word_embedding_dims'], model_params['hidden_dims'] * 2,
-                                  model_params['hidden_dims'] * 2)
-            attention = LuongAttention(model_params['hidden_dims'] * 2, model_params['hidden_dims'] * 2)
+            decoder = LSTMDecoder(target_size, model_params['word_embedding_dims'], model_params['hidden_dims'],
+                                  model_params['hidden_dims'])
+            attention = LuongAttention(model_params['hidden_dims'], model_params['hidden_dims'] * 2)
             model = BiLSTMSeq2Seq(encoder, decoder, attention=attention)
     else:
         raise ValueError()

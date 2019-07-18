@@ -51,7 +51,7 @@ class LSTMDecoder(nn.Module):
 
 class BiLSTMSeq2Seq(nn.Module):
     def __init__(self, encoder: BiLSTMEncoder, decoder: LSTMDecoder,
-                 attention=None, bos_idx=1, eos_idx=2, teacher_force_rate=0.7):
+                 attention=None, bos_idx=2, eos_idx=3, teacher_force_rate=0.7):
         super(BiLSTMSeq2Seq, self).__init__()
 
         self.teacher_force_rate = teacher_force_rate

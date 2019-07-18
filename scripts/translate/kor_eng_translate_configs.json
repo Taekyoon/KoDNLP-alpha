@@ -5,14 +5,14 @@
   "dataset": {
     "name": "test",
     "train": {
-      "vocab_min_freq": 10,
-      "source": "./corpus/korean_english_translate/korean-english-park.train.ko",
-      "target": "./corpus/korean_english_translate/korean-english-park.train.en"
+      "vocab_min_freq": 1,
+      "source": "./corpus/korean_english_translate/korean-english-park.dev.ko",
+      "target": "./corpus/korean_english_translate/korean-english-park.dev.en"
     },
     "test": {
       "limit_len": 30,
-      "source": "./corpus/korean_english_translate/korean-english-park.test.ko",
-      "target": "./corpus/korean_english_translate/korean-english-park.test.en"
+      "source": "./corpus/korean_english_translate/korean-english-park.dev.ko",
+      "target": "./corpus/korean_english_translate/korean-english-park.dev.en"
     }
   },
   "deploy": {
@@ -21,8 +21,8 @@
   "model": {
     "type": "bilstm_seq2seq",
     "parameters": {
-      "word_embedding_dims": 300,
-      "hidden_dims": 150
+      "word_embedding_dims": 32,
+      "hidden_dims": 64
     }
   },
   "train": {

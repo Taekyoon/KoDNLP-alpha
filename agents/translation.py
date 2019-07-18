@@ -49,6 +49,7 @@ class TranslateAgent(Agent):
         if os.path.exists(self.best_model_path):
             model = load_model(self.best_model_path, model)
         model.eval()
+        model.to(torch.device('cpu'))
 
         self.tokenizer = tokenizer
         self.source = vocabs['source_vocab']
@@ -66,8 +67,9 @@ class TranslateAgent(Agent):
         indiced_query = self.source.to_indices(tokenized_query)
 
         model_inputs = torch.Tensor([indiced_query]).long()
-
+        print(model_inputs)
         model_outputs = self.model(model_inputs)
+        print(model_outputs)
         predicted_seq = self.target.to_tokens(model_outputs.tolist()[0])
 
         outputs = {'source': prepro_query,
